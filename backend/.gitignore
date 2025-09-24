@@ -1,0 +1,16 @@
+Django stuff
+*.log
+*.pot
+*.pyc
+pycache/
+local_settings.py
+db.sqlite3
+media/
+
+Python virtual environment
+venv/
+env/
+.env
+
+Celery
+celerybeat-schedule
