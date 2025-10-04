@@ -14,13 +14,13 @@ export default function StatCard({ title, value, change, icon, changeType }: Sta
   return (
     <div className="bg-white p-6 rounded-lg shadow-sm">
       <div className="flex items-center justify-between">
-        <p className="text-sm font-medium text-gray-700">{title}</p>
+        <p className="text-sm font-medium text-black">{title}</p>
         <div className="bg-gray-100 p-2 rounded-md">
           {icon}
         </div>
       </div>
       <div className="mt-2">
-        <h3 className="text-3xl font-bold text-gray-900">{value}</h3>
+        <h3 className="text-3xl font-bold text-black">{value}</h3>
         <p className={`text-sm ${changeColor}`}>{change}</p>
       </div>
     </div>
