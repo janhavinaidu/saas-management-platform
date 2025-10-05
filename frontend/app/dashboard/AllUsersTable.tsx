@@ -1,6 +1,7 @@
 'use client';
 
-import { MoreHorizontal } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { MoreHorizontal, Edit, Trash2 } from 'lucide-react';
 
 // --- TYPE DEFINITIONS ---
 type User = {
@@ -14,14 +15,12 @@ type User = {
   lastActive: string;
 };
 
-// --- MOCK DATA ---
-const mockUsers: User[] = [
-  { id: 1, name: 'Sarah Johnson', email: 'sarah.johnson@company.com', department: 'Engineering', role: 'Senior Developer', licenses: 8, status: 'active', lastActive: '2 hours ago' },
-  { id: 2, name: 'Michael Chen', email: 'michael.chen@company.com', department: 'Marketing', role: 'Marketing Manager', licenses: 5, status: 'active', lastActive: '1 day ago' },
-  { id: 3, name: 'Emily Rodriguez', email: 'emily.rodriguez@company.com', department: 'Sales', role: 'Sales Representative', licenses: 3, status: 'inactive', lastActive: '1 week ago' },
-  { id: 4, name: 'David Park', email: 'david.park@company.com', department: 'Engineering', role: 'Frontend Developer', licenses: 6, status: 'active', lastActive: '3 hours ago' },
-  { id: 5, name: 'Jessica Miller', email: 'jessica.miller@company.com', department: 'Product', role: 'Product Manager', licenses: 7, status: 'active', lastActive: '5 hours ago' },
-];
+// --- PROPS TYPE ---
+type AllUsersTableProps = {
+  users: User[];
+  onEditUser: (user: User) => void;
+  onDeleteUser: (user: User) => void;
+};
 
 // --- HELPER COMPONENTS ---
 const UserAvatar = ({ name }: { name: string }) => {
@@ -44,48 +43,97 @@ const StatusTag = ({ status }: { status: User['status'] }) => {
 };
 
 
-export default function AllUsersTable() {
+export default function AllUsersTable({ users, onEditUser, onDeleteUser }: AllUsersTableProps) {
+  const [openMenuId, setOpenMenuId] = useState<number | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Effect to close the dropdown menu when clicking outside of it
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setOpenMenuId(null);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
   return (
     <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
       <h3 className="font-bold text-xl text-gray-800 mb-4">All Users</h3>
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[1000px]">
-          <thead>
-            <tr className="text-left text-xs font-semibold text-gray-500 uppercase">
-              <th className="py-3 px-4">User</th>
-              <th className="py-3 px-4">Department</th>
-              <th className="py-3 px-4">Role</th>
-              <th className="py-3 px-4">Licenses</th>
-              <th className="py-3 px-4">Status</th>
-              <th className="py-3 px-4">Last Active</th>
-              <th className="py-3 px-4"></th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {mockUsers.map((user) => (
-              <tr key={user.id} className="hover:bg-gray-50">
-                <td className="py-3 px-4">
-                  <div className="flex items-center">
-                    <UserAvatar name={user.name} />
-                    <div className="ml-4">
-                      <div className="font-semibold text-gray-900">{user.name}</div>
-                      <div className="text-sm text-gray-500">{user.email}</div>
-                    </div>
-                  </div>
-                </td>
-                <td className="py-3 px-4 text-sm text-gray-600">{user.department}</td>
-                <td className="py-3 px-4 text-sm text-gray-600">{user.role}</td>
-                <td className="py-3 px-4 text-sm font-semibold text-gray-800">{user.licenses}</td>
-                <td className="py-3 px-4"><StatusTag status={user.status} /></td>
-                <td className="py-3 px-4 text-sm text-gray-600">{user.lastActive}</td>
-                <td className="py-3 px-4 text-right">
-                  <button className="text-gray-400 hover:text-gray-700"><MoreHorizontal size={20} /></button>
-                </td>
+      {users.length === 0 ? (
+        <div className="text-center py-8">
+          <p className="text-gray-500 text-lg">No users found</p>
+          <p className="text-gray-400 text-sm mt-2">Add your first user using the "Add User" button above</p>
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[1000px]">
+            <thead>
+              <tr className="text-left text-xs font-semibold text-gray-500 uppercase">
+                <th className="py-3 px-4">User</th>
+                <th className="py-3 px-4">Department</th>
+                <th className="py-3 px-4">Role</th>
+                <th className="py-3 px-4">Licenses</th>
+                <th className="py-3 px-4">Status</th>
+                <th className="py-3 px-4">Last Active</th>
+                <th className="py-3 px-4"></th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {users.map((user) => (
+                <tr key={user.id} className="hover:bg-gray-50">
+                  <td className="py-3 px-4">
+                    <div className="flex items-center">
+                      <UserAvatar name={user.name} />
+                      <div className="ml-4">
+                        <div className="font-semibold text-gray-900">{user.name}</div>
+                        <div className="text-sm text-gray-500">{user.email}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="py-3 px-4 text-sm text-gray-600">{user.department}</td>
+                  <td className="py-3 px-4 text-sm text-gray-600">{user.role}</td>
+                  <td className="py-3 px-4 text-sm font-semibold text-gray-800">{user.licenses}</td>
+                  <td className="py-3 px-4"><StatusTag status={user.status} /></td>
+                  <td className="py-3 px-4 text-sm text-gray-600">{user.lastActive}</td>
+                  <td className="py-3 px-4 text-right relative">
+                    {/* --- THE 3-DOTS BUTTON --- */}
+                    <button 
+                      onClick={() => setOpenMenuId(openMenuId === user.id ? null : user.id)} 
+                      className="text-gray-500 hover:text-gray-800 p-1 rounded-full hover:bg-gray-200"
+                    >
+                      <MoreHorizontal size={20} />
+                    </button>
+                    {/* --- THE DROPDOWN MENU --- */}
+                    {openMenuId === user.id && (
+                      <div ref={menuRef} className="absolute right-0 top-10 mt-2 w-32 bg-white rounded-md shadow-lg border border-gray-200 z-10">
+                        <ul className="py-1">
+                          <li>
+                            <button 
+                              onClick={() => { onEditUser(user); setOpenMenuId(null); }} 
+                              className="w-full text-left flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                            >
+                              <Edit size={14} className="mr-2" /> Edit
+                            </button>
+                          </li>
+                          <li>
+                            <button 
+                              onClick={() => { onDeleteUser(user); setOpenMenuId(null); }} 
+                              className="w-full text-left flex items-center px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                            >
+                              <Trash2 size={14} className="mr-2" /> Delete
+                            </button>
+                          </li>
+                        </ul>
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }

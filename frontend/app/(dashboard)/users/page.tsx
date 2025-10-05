@@ -1,10 +1,24 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Search, Plus } from 'lucide-react';
 // Corrected the import paths to be relative to fix the resolution error.
 import AllUsersTable from '../../dashboard/AllUsersTable';
 import AddUserModal from '../../dashboard/AddUserModal';
+import EditUserModal from '../../dashboard/EditUserModal';
+import DeleteConfirmationModal from '../../../components/dashboard/DeleteConfirmationModal';
+
+// Define the User type
+type User = {
+  id: number;
+  name: string;
+  email: string;
+  department: string;
+  role: string;
+  licenses: number;
+  status: 'active' | 'inactive';
+  lastActive: string;
+};
 
 // A local component for the stat cards specific to this page's design.
 const StatCard = ({ title, value, bgColor, textColor }: { title: string, value: string, bgColor: string, textColor: string }) => (
@@ -15,9 +29,76 @@ const StatCard = ({ title, value, bgColor, textColor }: { title: string, value: 
 );
 
 export default function UsersPage() {
-  // --- STATE FOR THE MODAL ---
+  // --- STATE FOR THE MODALS ---
   // This state variable will control whether the "Add User" modal is visible.
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [deletingUser, setDeletingUser] = useState<User | null>(null);
+  
+  // --- STATE FOR USERS ---
+  // This state will manage the list of users - starting with empty array
+  const [users, setUsers] = useState<User[]>([]);
+
+  // Load users from localStorage on component mount
+  useEffect(() => {
+    const savedUsers = localStorage.getItem('users');
+    if (savedUsers) {
+      try {
+        const parsedUsers = JSON.parse(savedUsers);
+        console.log('Loaded users from localStorage:', parsedUsers);
+        setUsers(parsedUsers);
+      } catch (error) {
+        console.error('Failed to parse saved users:', error);
+        setUsers([]);
+      }
+    } else {
+      console.log('No saved users found in localStorage');
+    }
+  }, []);
+
+  // Save users to localStorage whenever users state changes
+  useEffect(() => {
+    if (users.length > 0) {
+      localStorage.setItem('users', JSON.stringify(users));
+      console.log('Saved users to localStorage:', users);
+    }
+  }, [users]);
+
+  // Function to add a new user
+  const addUser = (newUser: Omit<User, 'id' | 'status' | 'lastActive'>) => {
+    const user: User = {
+      ...newUser,
+      id: Math.max(...users.map(u => u.id), 0) + 1, // Generate new ID
+      status: 'active', // New users are active by default
+      lastActive: 'Just now'
+    };
+    setUsers(prevUsers => [...prevUsers, user]);
+  };
+
+  // Function to edit a user
+  const editUser = (updatedUser: User) => {
+    setUsers(prevUsers => 
+      prevUsers.map(user => 
+        user.id === updatedUser.id ? updatedUser : user
+      )
+    );
+  };
+
+  // Function to delete a user
+  const deleteUser = (userToDelete: User) => {
+    setUsers(prevUsers => 
+      prevUsers.filter(user => user.id !== userToDelete.id)
+    );
+  };
+
+  // Handler functions for the table actions
+  const handleEditUser = (user: User) => {
+    setEditingUser(user);
+  };
+
+  const handleDeleteUser = (user: User) => {
+    setDeletingUser(user);
+  };
 
   return (
     <>
@@ -50,23 +131,46 @@ export default function UsersPage() {
 
         {/* Stat Cards Section */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <StatCard title="Total Users" value="1,247" bgColor="bg-white" textColor="text-gray-900" />
-          <StatCard title="Active Users" value="1,180" bgColor="bg-white" textColor="text-green-600" />
-          <StatCard title="Inactive Users" value="45" bgColor="bg-white" textColor="text-red-600" />
-          <StatCard title="Pending Approval" value="22" bgColor="bg-white" textColor="text-yellow-600" />
+          <StatCard title="Total Users" value={users.length.toString()} bgColor="bg-white" textColor="text-gray-900" />
+          <StatCard title="Active Users" value={users.filter(user => user.status === 'active').length.toString()} bgColor="bg-white" textColor="text-green-600" />
+          <StatCard title="Inactive Users" value={users.filter(user => user.status === 'inactive').length.toString()} bgColor="bg-white" textColor="text-red-600" />
+          <StatCard title="Pending Approval" value="0" bgColor="bg-white" textColor="text-yellow-600" />
         </div>
 
         {/* All Users Table Section */}
         <div>
-          <AllUsersTable />
+          <AllUsersTable 
+            users={users} 
+            onEditUser={handleEditUser}
+            onDeleteUser={handleDeleteUser}
+          />
         </div>
       </div>
 
-      {/* The Modal Component itself, controlled by our state. */}
-      {/* It receives the state and the function to close itself. */}
+      {/* The Modal Components */}
       <AddUserModal 
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
+        onAddUser={addUser}
+      />
+      
+      <EditUserModal
+        isOpen={!!editingUser}
+        onClose={() => setEditingUser(null)}
+        onEditUser={editUser}
+        user={editingUser}
+      />
+      
+      <DeleteConfirmationModal
+        isOpen={!!deletingUser}
+        onClose={() => setDeletingUser(null)}
+        onConfirm={() => {
+          if (deletingUser) {
+            deleteUser(deletingUser);
+            setDeletingUser(null);
+          }
+        }}
+        itemName={deletingUser?.name || ''}
       />
     </>
   );

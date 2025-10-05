@@ -3,14 +3,15 @@ from django.contrib.auth.models import User
 from tenants.models import Profile
 from .models import SaaSApplication, LicenseRequest
 
-# --- THIS IS THE FINAL, CORRECTED REGISTRATION SERIALIZER ---
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=True, style={'input_type': 'password'})
-    role = serializers.CharField(write_only=True, required=True)
+    # If you want to allow setting role/department, remove read_only=True
+    role = serializers.CharField(source='profile.role', required=False)
+    department = serializers.CharField(source='profile.department', required=False)
 
     class Meta:
         model = User
-        fields = ('username', 'email', 'password', 'role')
+        fields = ('username', 'email', 'password', 'role', 'department')
 
     def validate(self, attrs):
         if User.objects.filter(username=attrs['username']).exists():
@@ -20,25 +21,22 @@ class RegisterSerializer(serializers.ModelSerializer):
         return attrs
 
     def create(self, validated_data):
-        # Pop 'role' out before creating the User, as the User model doesn't have a 'role' field.
-        role_data = validated_data.pop('role')
-        
-        # Create the user using the remaining validated data.
-        # THIS ACTION TRIGGERS THE AUTOMATIC SIGNAL THAT CREATES THE PROFILE.
-        user = User.objects.create_user(**validated_data)
-        
-        # --- THIS IS THE FIX ---
-        # Instead of creating a new profile, we find the one that was just created by the signal.
-        # Then, we simply UPDATE its 'role' field with the data from the form.
-        # Refresh the user from database to ensure profile exists
+        profile_data = validated_data.pop('profile', {})
+        user = User.objects.create_user(
+            username=validated_data['username'],
+            email=validated_data['email'],
+            password=validated_data['password']
+        )
         user.refresh_from_db()
-        user.profile.role = role_data
-        user.profile.save()
-            
+        # Set role and department if provided
+        if profile_data:
+            if 'role' in profile_data:
+                user.profile.role = profile_data['role']
+            if 'department' in profile_data:
+                user.profile.department = profile_data['department']
+            user.profile.save()
         return user
 
-
-# --- ALL OTHER SERIALIZERS REMAIN THE SAME ---
 class UserProfileSerializer(serializers.ModelSerializer):
     username = serializers.CharField(source='user.username')
     email = serializers.EmailField(source='user.email')
@@ -47,9 +45,11 @@ class UserProfileSerializer(serializers.ModelSerializer):
         fields = ['username', 'email', 'role']
 
 class UserSerializer(serializers.ModelSerializer):
+    role = serializers.CharField(source='profile.role', read_only=True)
+    department = serializers.CharField(source='profile.department', read_only=True)
     class Meta:
         model = User
-        fields = ['id', 'username', 'email']
+        fields = ['id', 'username', 'email', 'role', 'department']
 
 class SaaSApplicationSerializer(serializers.ModelSerializer):
     class Meta:
@@ -72,4 +72,3 @@ class LicenseRequestSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(f"Software '{software_name}' not found.")
         license_request = LicenseRequest.objects.create(software=software_instance, **validated_data)
         return license_request
-

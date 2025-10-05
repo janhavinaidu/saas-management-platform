@@ -10,7 +10,7 @@ class Profile(models.Model):
         ADMIN = 'ADMIN', 'Admin'
         DEPT_HEAD = 'DEPT_HEAD', 'Department Head'
         USER = 'USER', 'User'
-
+    
     # This links the Profile to a single User.
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     # This stores the user's role, with 'USER' as the default.

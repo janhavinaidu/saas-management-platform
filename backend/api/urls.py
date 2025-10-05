@@ -7,7 +7,8 @@ from .views import (
     RegisterView,
     SaaSApplicationListView,
     SaaSApplicationDetailView,
-    InventoryStatsView  
+    InventoryStatsView,
+    DashboardStatsView  # <-- Import the new view for the main dashboard stats
 )
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
@@ -26,24 +27,20 @@ urlpatterns = [
     path('users/', UserListView.as_view(), name='user-list'),
 
     # --- SOFTWARE INVENTORY ENDPOINTS ---
-    
-    # GET: /api/saas-applications/ -> Retrieves a list of all software.
     path('saas-applications/', SaaSApplicationListView.as_view(), name='saas-application-list'),
-
-    # POST: /api/saas-applications/create/ -> Adds a new software to the inventory.
     path('saas-applications/create/', SaaSApplicationCreateView.as_view(), name='saas-application-create'),
-
-    # --- THIS IS THE NEW ENDPOINT ---
-    # It handles actions on a *specific* software item by its ID (pk means "primary key").
-    # GET: /api/saas-applications/5/ -> Retrieves software with ID 5.
-    # PUT/PATCH: /api/saas-applications/5/ -> Updates software with ID 5.
-    # DELETE: /api/saas-applications/5/ -> Deletes software with ID 5.
     path('saas-applications/<int:pk>/', SaaSApplicationDetailView.as_view(), name='saas-application-detail'),
+
+    # --- DASHBOARD STATS ENDPOINTS ---
+
+    # GET /api/inventory-stats/ -> Retrieves stats for the Inventory page cards.
+    path('inventory-stats/', InventoryStatsView.as_view(), name='inventory-stats'),
+
+    # --- THIS IS THE NEWLY ADDED ENDPOINT ---
+    # GET /api/dashboard-stats/ -> Retrieves stats for the main Admin Dashboard cards.
+    path('dashboard-stats/', DashboardStatsView.as_view(), name='dashboard-stats'),
 
     # --- LICENSE REQUEST ENDPOINTS ---
     path('license-requests/', LicenseRequestCreateView.as_view(), name='license-request-create'),
-    
-    # --- INVENTORY STATS ENDPOINT ---
-    path('inventory-stats/', InventoryStatsView.as_view(), name='inventory-stats'),
 ]
 

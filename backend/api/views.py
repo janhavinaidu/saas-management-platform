@@ -4,6 +4,10 @@ from rest_framework.response import Response
 from django.contrib.auth.models import User
 from django.utils import timezone
 from datetime import timedelta
+from django.db.models import Sum, Value
+from django.db.models.functions import Coalesce
+from decimal import Decimal
+
 from .serializers import (
     UserSerializer, 
     SaaSApplicationSerializer, 
@@ -15,112 +19,134 @@ from .models import SaaSApplication, LicenseRequest
 from tenants.models import Profile
 
 # --- AUTHENTICATION & USER VIEWS ---
-class SaaSApplicationListView(generics.ListAPIView):
-    """
-    An endpoint for admins to get a list of all software applications in the inventory.
-    """
-    permission_classes = [permissions.IsAuthenticated] # Ensures only logged-in users can access it
-    queryset = SaaSApplication.objects.all()
-    serializer_class = SaaSApplicationSerializer
-
 class RegisterView(generics.CreateAPIView):
-    """
-    An endpoint for creating new user accounts.
-    This is publicly accessible so anyone can sign up.
-    """
     queryset = User.objects.all()
     permission_classes = [permissions.AllowAny]
     serializer_class = RegisterSerializer
 
-    
-
 class UserProfileView(generics.RetrieveAPIView):
-    """
-    An endpoint that provides the profile (including the role) of the
-    currently authenticated user. This is crucial for the frontend to
-    determine which dashboard to display.
-    """
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = UserProfileSerializer
-
     def get_object(self):
-        # The `request.user` attribute is automatically populated by the
-        # authentication middleware with the logged-in user.
-        profile = self.request.user.profile
-        print(f"DEBUG: User {self.request.user.username} has role: {profile.role}")
-        return profile
+        return self.request.user.profile
 
 # --- DATA MANAGEMENT VIEWS ---
-
 class UserListView(generics.ListAPIView):
-    """
-    An endpoint for admins to get a list of all users in the system.
-    """
-    permission_classes = [permissions.IsAuthenticated] # Should be admin-only in the future
+    permission_classes = [permissions.IsAuthenticated]
     queryset = User.objects.all()
     serializer_class = UserSerializer
 
-class InventoryStatsView(APIView):
-    """
-    An endpoint that calculates and returns key statistics for the inventory dashboard.
-    """
-    permission_classes = [permissions.IsAuthenticated]
-
-    def get(self, request, *args, **kwargs):
-        # Get the full queryset of applications
-        queryset = SaaSApplication.objects.all()
-
-        # Calculate the date 30 days from now for 'expiring soon' logic
-        today = timezone.now().date()
-        thirty_days_from_now = today + timedelta(days=30)
-
-        # Perform the calculations
-        total_software = queryset.count()
-        expired_count = queryset.filter(renewal_date__lt=today).count()
-        expiring_soon_count = queryset.filter(renewal_date__gte=today, renewal_date__lte=thirty_days_from_now).count()
-        
-        # Active is everything that isn't expired
-        active_licenses = total_software - expired_count
-
-        # Prepare the data to be sent
-        data = {
-            'total_software': total_software,
-            'active_licenses': active_licenses,
-            'expiring_soon': expiring_soon_count,
-            'expired': expired_count,
-        }
-        return Response(data)    
-class SaaSApplicationDetailView(generics.RetrieveUpdateDestroyAPIView):
-    """
-    An endpoint for a single software application.
-    - GET: Retrieves the details of one application.
-    - PUT/PATCH: Updates an application.
-    - DELETE: Deletes an application.
-    """
+class SaaSApplicationListView(generics.ListAPIView):
     permission_classes = [permissions.IsAuthenticated]
     queryset = SaaSApplication.objects.all()
-    serializer_class = SaaSApplicationSerializer    
+    serializer_class = SaaSApplicationSerializer
+
+class SaaSApplicationDetailView(generics.RetrieveUpdateDestroyAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+    queryset = SaaSApplication.objects.all()
+    serializer_class = SaaSApplicationSerializer
 
 class SaaSApplicationCreateView(generics.CreateAPIView):
-    """
-    An endpoint for admins to add a new software application to the inventory.
-    """
     permission_classes = [permissions.IsAuthenticated]
     queryset = SaaSApplication.objects.all()
     serializer_class = SaaSApplicationSerializer
 
 class LicenseRequestCreateView(generics.CreateAPIView):
-    """
-    An endpoint for department heads to submit a new license grant or revoke request.
-    """
     permission_classes = [permissions.IsAuthenticated]
     queryset = LicenseRequest.objects.all()
     serializer_class = LicenseRequestSerializer
-
     def perform_create(self, serializer):
-        """
-        This method is called before saving a new LicenseRequest.
-        It automatically sets the 'requested_by' field to the current logged-in user.
-        """
         serializer.save(requested_by=self.request.user)
+
+# --- DASHBOARD STATISTICS VIEWS ---
+class InventoryStatsView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    def get(self, request, *args, **kwargs):
+        try:
+            from datetime import datetime, timedelta
+            
+            # Get all software applications
+            all_software = SaaSApplication.objects.all()
+            total_software = all_software.count()
+            
+            # Calculate active licenses (sum of all total_licenses)
+            active_licenses = all_software.aggregate(
+                total=Coalesce(Sum('total_licenses'), Value(0))
+            )['total']
+            
+            # Calculate expiring soon (within 30 days) and expired
+            today = datetime.now().date()
+            thirty_days_from_now = today + timedelta(days=30)
+            
+            expiring_soon = 0
+            expired = 0
+            
+            for software in all_software:
+                if software.renewal_date:
+                    if software.renewal_date < today:
+                        expired += 1
+                    elif software.renewal_date <= thirty_days_from_now:
+                        expiring_soon += 1
+            
+            data = {
+                'total_software': total_software,
+                'active_licenses': active_licenses,
+                'expiring_soon': expiring_soon,
+                'expired': expired,
+            }
+            return Response(data)
+        
+        except Exception as e:
+            print(f"!!! ERROR in InventoryStatsView: {e}")
+            return Response({'error': 'Failed to calculate inventory stats.'}, status=500)
+
+# --- THIS IS THE CORRECTED VIEW ---
+class DashboardStatsView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        try:
+            # User calculations
+            total_users = User.objects.count()
+            active_users = User.objects.filter(is_active=True).count() 
+
+            # Inventory calculations
+            inventory_queryset = SaaSApplication.objects.all()
+            
+            # Use database aggregation for a more efficient cost calculation.
+            # The result will be a Decimal type or None.
+            total_cost_result = inventory_queryset.aggregate(
+                total_cost=Sum('monthly_cost')
+            )['total_cost']
+
+            # Ensure total_cost_result is not None before converting.
+            total_monthly_cost_decimal = total_cost_result or Decimal('0.0')
+
+            # --- THIS IS THE FIX ---
+            # We must explicitly convert the Decimal type from the database to a float
+            # before performing multiplication with another float.
+            cost_savings = float(total_monthly_cost_decimal) * 0.15 
+
+            # Use total software count as a proxy for total licenses for now
+            total_licenses = inventory_queryset.count()
+
+            data = {
+                'total_licenses': total_licenses,
+                'active_users': active_users,
+                'cost_savings': round(cost_savings, 2),
+            }
+            
+            # --- THIS IS THE FIX ---
+            # We must include `total_monthly_cost` in the data we send back.
+            data = {
+                'total_licenses': total_licenses,
+                'active_users': active_users,
+                'cost_savings': round(cost_savings, 2),
+                'total_monthly_cost': round(float(total_monthly_cost_decimal), 2), # <-- THE MISSING PIECE
+            }
+            return Response(data)
+        
+        except Exception as e:
+            print(f"!!! CRITICAL ERROR in DashboardStatsView: {e}")
+            return Response({'error': 'An error occurred while calculating dashboard stats.'}, status=500)
 

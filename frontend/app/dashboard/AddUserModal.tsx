@@ -6,9 +6,10 @@ import { useState } from 'react';
 type AddUserModalProps = {
   isOpen: boolean;
   onClose: () => void;
+  onAddUser: (user: { name: string; email: string; department: string; role: string; password: string; licenses: number }) => void;
 };
 
-export default function AddUserModal({ isOpen, onClose }: AddUserModalProps) {
+export default function AddUserModal({ isOpen, onClose, onAddUser }: AddUserModalProps) {
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -21,16 +22,16 @@ export default function AddUserModal({ isOpen, onClose }: AddUserModalProps) {
 
     const formData = new FormData(e.currentTarget);
     const payload = {
-      name: formData.get('fullName'),
-      email: formData.get('email'),
-      department: formData.get('department'),
-      role: formData.get('role'),
-      password: formData.get('password'),
+      name: formData.get('fullName') as string,
+      email: formData.get('email') as string,
+      department: formData.get('department') as string,
+      role: formData.get('role') as string,
+      password: formData.get('password') as string,
+      licenses: parseInt(formData.get('licenses') as string) || 0,
     };
 
-    // For now, we just log the data. Later, this will be an API call.
-    console.log("New User Payload:", payload);
-    alert("New user details logged to console! Check the developer tools.");
+    // Add the user to the state
+    onAddUser(payload);
     
     setIsSubmitting(false);
     onClose(); // Close the modal
@@ -67,8 +68,19 @@ export default function AddUserModal({ isOpen, onClose }: AddUserModalProps) {
               </select>
             </div>
             <div>
-              <label htmlFor="password" className="block text_sm font-medium text-gray-700">Temporary Password</label>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700">Temporary Password</label>
               <input type="password" name="password" id="password" required className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500"/>
+            </div>
+            <div>
+              <label htmlFor="licenses" className="block text-sm font-medium text-gray-700">Number of Licenses</label>
+              <input 
+                type="number" 
+                name="licenses" 
+                id="licenses" 
+                min="0" 
+                defaultValue="0"
+                className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500"
+              />
             </div>
           
           {error && <p className="text-red-600 text-sm text-center">{error}</p>}

@@ -1,14 +1,13 @@
 import React from 'react';
-
 type StatCardProps = {
   title: string;
   value: string;
   change: string;
   icon: React.ReactNode;
-  changeType: 'increase' | 'decrease';
+  changeType?: 'increase' | 'decrease';
 };
 
-export default function StatCard({ title, value, change, icon, changeType }: StatCardProps) {
+export default function StatCard({ title, value, change, icon, changeType = 'increase' }: StatCardProps) {
   const changeColor = changeType === 'increase' ? 'text-green-500' : 'text-red-500';
 
   return (
@@ -26,4 +25,3 @@ export default function StatCard({ title, value, change, icon, changeType }: Sta
     </div>
   );
 }
-

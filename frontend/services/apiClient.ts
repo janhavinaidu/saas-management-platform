@@ -1,7 +1,13 @@
-// A utility to get a new access token using the refresh token
+/**
+ * A utility function to get a new access token using the refresh token.
+ * This is called automatically when an API request fails with a 401 Unauthorized error.
+ */
 const getNewAccessToken = async (): Promise<string | null> => {
     const refreshToken = localStorage.getItem('refreshToken');
-    if (!refreshToken) return null;
+    if (!refreshToken) {
+        console.error("No refresh token found.");
+        return null;
+    }
 
     try {
         const response = await fetch('http://127.0.0.1:8000/api/token/refresh/', {
@@ -19,10 +25,11 @@ const getNewAccessToken = async (): Promise<string | null> => {
         return data.access;
     } catch (error) {
         console.error('Token refresh failed:', error);
-        // Clear tokens and force re-login if refresh fails
+        // Clear old tokens to prevent an infinite loop
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
-        // Redirect to login page
+        
+        // Force a redirect to the login page
         if (typeof window !== 'undefined') {
             window.location.href = '/login';
         }
@@ -30,50 +37,48 @@ const getNewAccessToken = async (): Promise<string | null> => {
     }
 };
 
-// This is our new, smart fetch function
+/**
+ * This is our new, "smart" fetch function that handles authentication.
+ * It automatically adds the 'Authorization' header and will attempt to
+ * refresh the token and retry the request if it fails with a 401 error.
+ * All secure API calls in the application should use this function.
+ */
 export const fetchWithAuth = async (url: string, options: RequestInit = {}): Promise<Response> => {
     let accessToken = localStorage.getItem('accessToken');
     
     if (!accessToken) {
-        throw new Error('No authentication token found.');
+        console.error('No access token found. Redirecting to login.');
+        if (typeof window !== 'undefined') {
+            window.location.href = '/login';
+        }
+        // Return a dummy response to prevent further execution
+        return new Response(JSON.stringify({ error: "Not authenticated" }), { status: 401 });
     }
 
-    // Set up initial headers
+    // Set up the initial request headers
     const headers = new Headers(options.headers || {});
     headers.set('Authorization', `Bearer ${accessToken}`);
-    if (!(options.body instanceof FormData)) {
+    // Only set Content-Type if a body is present and it's not FormData
+    if (options.body && !(options.body instanceof FormData)) {
         headers.set('Content-Type', 'application/json');
     }
 
-    try {
-        // Make the initial request with better error handling
-        console.log('Making request to:', url);
-        let response = await fetch(url, { ...options, headers });
-        console.log('Response status:', response.status);
+    // Make the initial API request
+    let response = await fetch(url, { ...options, headers });
 
-        // If the response is 401, our token might be expired
-        if (response.status === 401) {
-            console.log('Access token expired. Attempting to refresh...');
-            const newAccessToken = await getNewAccessToken();
-            
-            if (newAccessToken) {
-                // If we got a new token, update headers and retry the request
-                headers.set('Authorization', `Bearer ${newAccessToken}`);
-                console.log('Retrying the original request with new token...');
-                response = await fetch(url, { ...options, headers });
-            }
-        }
-
-        return response;
-    } catch (error) {
-        console.error('Fetch error details:', error);
-        console.error('Request URL:', url);
-        console.error('Request options:', { ...options, headers: Object.fromEntries(headers.entries()) });
+    // If the response is 401 (Unauthorized), our token is likely expired
+    if (response.status === 401) {
+        console.log('Access token expired. Attempting to refresh...');
+        const newAccessToken = await getNewAccessToken();
         
-        // Check if it's a network error
-        if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
-            throw new Error(`Network error: Unable to connect to ${url}. Please check if the backend server is running on http://127.0.0.1:8000`);
+        // If we successfully got a new token, retry the original request
+        if (newAccessToken) {
+            headers.set('Authorization', `Bearer ${newAccessToken}`);
+            console.log('Retrying the original request with new token...');
+            response = await fetch(url, { ...options, headers });
         }
-        throw error;
     }
+
+    return response;
 };
+

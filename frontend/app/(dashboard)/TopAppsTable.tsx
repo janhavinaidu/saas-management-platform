@@ -1,58 +1,79 @@
 'use client';
 
-// A mock data array for software applications. In a real application, this would come from an API.
-const applications = [
-  { name: 'Microsoft 365', users: 1250, cost: 12500 },
-  { name: 'Slack Premium', users: 980, cost: 7840 },
-  { name: 'Adobe Creative Cloud', users: 450, cost: 22500 },
-  { name: 'Figma Professional', users: 320, cost: 4800 },
-  { name: 'Zoom Pro', users: 1100, cost: 5500 },
-  { name: 'Salesforce', users: 280, cost: 8400 },
-  { name: 'Atlassian Suite', users: 650, cost: 9750 },
-];
+import { useState, useEffect } from 'react';
+import { fetchWithAuth } from '../../services/apiClient';
 
-/**
- * A component that displays a table of the top software applications by usage or cost.
- * This version includes enhanced styling for a more professional and modern look.
- */
+// Type definition for a software item
+type SoftwareItem = {
+  id: number;
+  name: string;
+  total_licenses: number;
+  monthly_cost: string;
+  vendor?: string;
+};
+
 export default function TopAppsTable() {
+  const [apps, setApps] = useState<SoftwareItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    const fetchApps = async () => {
+      setIsLoading(true);
+      setError('');
+      try {
+        const response = await fetchWithAuth('http://127.0.0.1:8000/api/saas-applications/');
+        if (!response.ok) throw new Error('Failed to fetch software inventory.');
+        const data: SoftwareItem[] = await response.json();
+        // Sort descending by total_licenses and take top 7
+        const sorted = [...data].sort((a, b) => b.total_licenses - a.total_licenses).slice(0, 7);
+        setApps(sorted);
+      } catch (err: any) {
+        setError(err.message || 'Error loading top applications.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchApps();
+  }, []);
+
   return (
-    // Card container for a consistent look with the rest of the dashboard
     <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
       <h3 className="font-semibold text-lg text-gray-900">Top Software Applications</h3>
       <p className="text-sm text-gray-500 mb-4">Overview of your most used software licenses</p>
-      
-      {/* Table container with overflow for responsiveness */}
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[600px]">
-          {/* Table Header */}
-          <thead>
-            <tr className="bg-gray-50 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-              <th className="p-3">Application Name</th>
-              <th className="p-3 text-right">Active Users</th>
-              <th className="p-3 text-right">Monthly Cost</th>
-            </tr>
-          </thead>
-
-          {/* Table Body */}
-          <tbody className="divide-y divide-gray-200">
-            {applications.map((app) => (
-              <tr key={app.name} className="hover:bg-gray-50 transition-colors duration-200">
-                <td className="p-3 whitespace-nowrap">
-                  <div className="font-medium text-gray-800">{app.name}</div>
-                </td>
-                <td className="p-3 whitespace-nowrap text-right text-gray-600">
-                  {app.users.toLocaleString()}
-                </td>
-                <td className="p-3 whitespace-nowrap text-right text-gray-600 font-medium">
-                  ${app.cost.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                </td>
+        {isLoading ? (
+          <div className="text-center py-8">Loading...</div>
+        ) : error ? (
+          <div className="text-center py-8 text-red-600">{error}</div>
+        ) : (
+          <table className="w-full min-w-[600px]">
+            <thead>
+              <tr className="bg-gray-50 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                <th className="p-3">Application Name</th>
+                <th className="p-3 text-right">Total Licenses</th>
+                <th className="p-3 text-right">Monthly Cost</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {apps.map((app) => (
+                <tr key={app.id} className="hover:bg-gray-50 transition-colors duration-200">
+                  <td className="p-3 whitespace-nowrap">
+                    <div className="font-medium text-gray-800">{app.name}</div>
+                    {app.vendor && <div className="text-xs text-gray-500">{app.vendor}</div>}
+                  </td>
+                  <td className="p-3 whitespace-nowrap text-right text-gray-600 font-medium">
+                    {app.total_licenses.toLocaleString()}
+                  </td>
+                  <td className="p-3 whitespace-nowrap text-right text-gray-600 font-medium">
+                    ${parseFloat(app.monthly_cost).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
     </div>
   );
 }
-

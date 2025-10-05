@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Navbar from './Navbar';
 import Sidebar from './Sidebar';
 import AddSoftwareModal from '../dashboard/AddSoftwareModal';
+import { fetchWithAuth } from '../../services/apiClient';
 
 // Define the shape of the user profile we expect from the backend
 type UserProfile = {
@@ -42,12 +43,13 @@ export default function DashboardLayout({
   };
 
   useEffect(() => {
-    const fetchProfile = async () => {
+    const fetchProfile = async (retryCount = 0) => {
       // 1. Get the authentication token from localStorage.
       const token = localStorage.getItem('accessToken');
 
       // 2. If no token is found, the user is not logged in. Redirect them.
       if (!token) {
+        console.log('Layout - No access token found, redirecting to login');
         router.push('/login');
         return;
       }
@@ -62,19 +64,15 @@ export default function DashboardLayout({
 
       // 3. Always fetch fresh profile data to ensure correct user role
       // This prevents issues with cached profiles from previous users
-      console.log('Layout - Always fetching fresh profile data');
+      console.log('Layout - Fetching fresh profile data, attempt:', retryCount + 1);
 
       try {
-        // 4. Make a secure API call to the backend's /api/profile/ endpoint.
-        const response = await fetch('http://127.0.0.1:8000/api/profile/', {
-          headers: {
-            'Authorization': `Bearer ${token}`, // Include the token in the request header
-          },
-        });
+        // 4. Make a secure API call to the backend's /api/profile/ endpoint using fetchWithAuth
+        const response = await fetchWithAuth('http://127.0.0.1:8000/api/profile/');
 
         if (!response.ok) {
           // If the token is invalid or expired, the backend will return an error.
-          throw new Error('Authentication failed. Please log in again.');
+          throw new Error(`Authentication failed with status ${response.status}. Please log in again.`);
         }
 
         const userProfile: UserProfile = await response.json();
@@ -90,6 +88,20 @@ export default function DashboardLayout({
 
       } catch (err: any) {
         console.error("Failed to fetch profile:", err);
+        console.error("Error details:", {
+          message: err.message,
+          stack: err.stack,
+          token: token ? 'Present' : 'Missing',
+          retryCount
+        });
+        
+        // If it's a network error and we haven't retried too many times, try again
+        if (err.message.includes('Network error') && retryCount < 2) {
+          console.log('Layout - Network error, retrying in 1 second...');
+          setTimeout(() => fetchProfile(retryCount + 1), 1000);
+          return;
+        }
+        
         setError(err.message);
         // On failure (e.g., bad token), clear the old token and redirect to login.
         localStorage.removeItem('accessToken');
@@ -98,12 +110,14 @@ export default function DashboardLayout({
         sessionStorage.removeItem('lastAccessToken');
         router.push('/login');
       } finally {
-        setIsLoading(false);
+        if (retryCount === 0) {
+          setIsLoading(false);
+        }
       }
     };
 
     fetchProfile();
-  }, []); // Empty dependency array - only run once on mount
+  }, [router]); // Include router in dependencies for better navigation handling
 
   // While we are fetching the user's role, show a minimal loading state
   if (isLoading) {
