@@ -21,10 +21,53 @@ type DashboardStats = {
   total_monthly_cost: number;
 };
 
+type User = {
+  id: number;
+  name: string;
+  email: string;
+  department: string;
+  role: string;
+  licenses: number;
+  status: 'active' | 'inactive';
+  lastActive: string;
+};
+
 export default function AdminDashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const [activeUsersCount, setActiveUsersCount] = useState(0);
+
+  // Load active users count from localStorage
+  useEffect(() => {
+    const loadActiveUsers = () => {
+      const savedUsers = localStorage.getItem('users');
+      if (savedUsers) {
+        try {
+          const parsedUsers: User[] = JSON.parse(savedUsers);
+          const activeCount = parsedUsers.filter(user => user.status === 'active').length;
+          setActiveUsersCount(activeCount);
+        } catch (error) {
+          console.error('Failed to parse users from localStorage:', error);
+          setActiveUsersCount(0);
+        }
+      } else {
+        setActiveUsersCount(0);
+      }
+    };
+
+    loadActiveUsers();
+
+    // Listen for storage changes to update in real-time
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'users') {
+        loadActiveUsers();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -86,8 +129,8 @@ export default function AdminDashboard() {
         />
         <StatCard
           title="Active Users"
-          value={stats ? stats.active_users.toLocaleString() : '0'}
-          change="In the last 30 days"
+          value={activeUsersCount.toLocaleString()}
+          change="From users management"
           icon={<Users className="h-5 w-5 text-purple-500" />}
         />
         <StatCard
