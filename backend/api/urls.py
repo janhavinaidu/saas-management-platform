@@ -2,13 +2,16 @@ from django.urls import path
 from .views import (
     UserListView, 
     SaaSApplicationCreateView, 
-    LicenseRequestCreateView, 
+    LicenseRequestCreateView,
+    UserLicenseRequestCreateView,
+    IssueReportCreateView,
     UserProfileView,
     RegisterView,
     SaaSApplicationListView,
     SaaSApplicationDetailView,
     InventoryStatsView,
-    DashboardStatsView  # <-- Import the new view for the main dashboard stats
+    DashboardStatsView,
+    DepartmentTeamView
 )
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
@@ -25,7 +28,9 @@ urlpatterns = [
 
     # --- DATA MANAGEMENT ENDPOINTS ---
     path('users/', UserListView.as_view(), name='user-list'),
-
+    # --- THIS IS THE NEW ENDPOINT FOR DEPT HEADS ---
+    # GET /api/department-team/ -> For a logged-in Dept Head to get ONLY their team members.
+    path('department-team/', DepartmentTeamView.as_view(), name='department-team-list'),
     # --- SOFTWARE INVENTORY ENDPOINTS ---
     path('saas-applications/', SaaSApplicationListView.as_view(), name='saas-application-list'),
     path('saas-applications/create/', SaaSApplicationCreateView.as_view(), name='saas-application-create'),
@@ -42,5 +47,9 @@ urlpatterns = [
 
     # --- LICENSE REQUEST ENDPOINTS ---
     path('license-requests/', LicenseRequestCreateView.as_view(), name='license-request-create'),
+    path('user-license-request/', UserLicenseRequestCreateView.as_view(), name='user-license-request-create'),
+    
+    # --- ISSUE REPORT ENDPOINTS ---
+    path('report-issue/', IssueReportCreateView.as_view(), name='issue-report-create'),
 ]
 

@@ -45,3 +45,40 @@ class LicenseRequest(models.Model):
     def __str__(self):
         return f"{self.get_request_type_display()} request for {self.software.name}"
 
+# Model for issue reports submitted by users
+class IssueReport(models.Model):
+    class IssueType(models.TextChoices):
+        ACCESS_ISSUE = 'ACCESS_ISSUE', 'Cannot Access / Login Problem'
+        PERFORMANCE = 'PERFORMANCE', 'Performance / Slow'
+        BUG = 'BUG', 'Bug / Error'
+        LICENSE_EXPIRED = 'LICENSE_EXPIRED', 'License Expired'
+        FEATURE_REQUEST = 'FEATURE_REQUEST', 'Feature Request'
+        OTHER = 'OTHER', 'Other'
+
+    class IssueStatus(models.TextChoices):
+        OPEN = 'OPEN', 'Open'
+        IN_PROGRESS = 'IN_PROGRESS', 'In Progress'
+        RESOLVED = 'RESOLVED', 'Resolved'
+        CLOSED = 'CLOSED', 'Closed'
+
+    # The user who reported the issue
+    reported_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reported_issues')
+    
+    # The software application the issue is about
+    software_name = models.CharField(max_length=200)
+    
+    # Type and status of the issue
+    issue_type = models.CharField(max_length=20, choices=IssueType.choices)
+    status = models.CharField(max_length=15, choices=IssueStatus.choices, default=IssueStatus.OPEN)
+    
+    # Description of the issue
+    description = models.TextField()
+    
+    # Timestamps
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    resolved_at = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.get_issue_type_display()} - {self.software_name} by {self.reported_by.username}"
+

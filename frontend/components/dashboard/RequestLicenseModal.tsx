@@ -1,23 +1,22 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { fetchWithAuth } from '@/services/apiClient'; // <-- THE MOST IMPORTANT CHANGE IS USING THIS
 
-// Define the shape of a single software license
+// --- TYPE DEFINITIONS ---
 type License = {
   id: number;
   name: string;
 };
 
-// Define the shape of the User object we expect to receive
 type User = {
   id: number;
-  name: string;
+  name: string; // The modal uses 'name' internally
   email: string;
   role: string;
   licenses: License[];
 };
 
-// Define the shape of all props this component receives
 type RequestLicenseModalProps = {
   isOpen: boolean;
   onClose: () => void;
@@ -33,13 +32,11 @@ export default function RequestLicenseModal({ isOpen, onClose, onSubmitSuccess, 
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // This effect pre-fills the form when it opens in "revoke" mode.
   useEffect(() => {
     if (isOpen && softwareToRevoke) {
       setRequestType('REVOKE');
       setSoftwareName(softwareToRevoke.name);
     } else if (isOpen) {
-      // Reset form for "grant" mode when opening
       setRequestType('GRANT');
       setSoftwareName('');
       setReason('');
@@ -54,7 +51,6 @@ export default function RequestLicenseModal({ isOpen, onClose, onSubmitSuccess, 
     setError('');
     setIsSubmitting(true);
 
-    // This is the payload that matches what the backend serializer expects.
     const payload = {
       user: user.id,
       request_type: requestType,
@@ -63,47 +59,24 @@ export default function RequestLicenseModal({ isOpen, onClose, onSubmitSuccess, 
     };
 
     try {
-      const response = await fetch('http://127.0.0.1:8000/api/license-requests/', {
+      // --- THIS IS THE FIX ---
+      // We now use our smart fetchWithAuth function, which automatically
+      // adds the authentication token to the request.
+      const response = await fetchWithAuth('http://127.0.0.1:8000/api/license-requests/', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
-        const contentType = response.headers.get('content-type') || '';
-        let errorData: any = null;
-        if (contentType.includes('application/json')) {
-          errorData = await response.json().catch(() => null);
-        }
-
-        let message = `Request failed with status ${response.status}`;
-        if (errorData) {
-          if (typeof errorData.detail === 'string') {
-            message = errorData.detail;
-          } else if (Array.isArray(errorData.non_field_errors) && errorData.non_field_errors.length > 0) {
-            message = errorData.non_field_errors[0];
-          } else {
-            const errorKeys = Object.keys(errorData);
-            if (errorKeys.length > 0) {
-              const key = errorKeys[0];
-              const val = errorData[key];
-              if (Array.isArray(val) && val.length > 0) {
-                message = `${key}: ${val[0]}`;
-              } else if (typeof val === 'string') {
-                message = `${key}: ${val}`;
-              }
-            }
-          }
-        }
-        throw new Error(message);
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `Request failed with status ${response.status}`);
       }
 
-      // If successful, call the callback to update the parent component's UI
       if (requestType === 'REVOKE') {
         onSubmitSuccess(user.id, softwareName);
       }
       
-      onClose(); // Close the modal
+      onClose();
       
     } catch (err: any) {
       setError(err.message);
@@ -126,7 +99,8 @@ export default function RequestLicenseModal({ isOpen, onClose, onSubmitSuccess, 
         </p>
 
         <form onSubmit={handleSubmit}>
-          <div className="space-y-4">
+          {/* ... (the rest of the form JSX remains the same) ... */}
+           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Request Type</label>
               <select

@@ -13,9 +13,12 @@ from .serializers import (
     SaaSApplicationSerializer, 
     LicenseRequestSerializer, 
     UserProfileSerializer,
-    RegisterSerializer
+    RegisterSerializer,
+    UserWithLicensesSerializer,
+    UserLicenseRequestSerializer,
+    IssueReportSerializer
 )
-from .models import SaaSApplication, LicenseRequest
+from .models import SaaSApplication, LicenseRequest, IssueReport
 from tenants.models import Profile
 
 # --- AUTHENTICATION & USER VIEWS ---
@@ -57,6 +60,32 @@ class LicenseRequestCreateView(generics.CreateAPIView):
     serializer_class = LicenseRequestSerializer
     def perform_create(self, serializer):
         serializer.save(requested_by=self.request.user)
+
+class UserLicenseRequestCreateView(generics.CreateAPIView):
+    """
+    An endpoint for a regular user to submit a license request for themselves.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+    queryset = LicenseRequest.objects.all()
+    serializer_class = UserLicenseRequestSerializer
+
+    def perform_create(self, serializer):
+        """
+        This method automatically sets both 'user' (who the request is for)
+        and 'requested_by' to the current logged-in user.
+        """
+        serializer.save(user=self.request.user, requested_by=self.request.user)
+
+class IssueReportCreateView(generics.CreateAPIView):
+    """
+    An endpoint for users to report issues with their software.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+    queryset = IssueReport.objects.all()
+    serializer_class = IssueReportSerializer
+
+    def perform_create(self, serializer):
+        serializer.save(reported_by=self.request.user)
 
 # --- DASHBOARD STATISTICS VIEWS ---
 class InventoryStatsView(APIView):
@@ -150,3 +179,28 @@ class DashboardStatsView(APIView):
             print(f"!!! CRITICAL ERROR in DashboardStatsView: {e}")
             return Response({'error': 'An error occurred while calculating dashboard stats.'}, status=500)
 
+# --- THIS IS THE CORRECTED VIEW ---
+class DepartmentTeamView(generics.ListAPIView):
+    """
+    An endpoint for a Department Head to get a list of users
+    only within their own department, including their assigned licenses.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = UserWithLicensesSerializer
+
+    def get_queryset(self):
+        try:
+            # Safely get the profile of the user making the request
+            user_profile = self.request.user.profile
+            
+            # If the user has a department set, filter the user list by that department
+            if user_profile and user_profile.department:
+                # We also exclude the department head themselves from the list
+                return User.objects.filter(profile__department=user_profile.department).exclude(pk=self.request.user.pk)
+        
+        except Profile.DoesNotExist:
+            # If the user somehow has no profile, return an empty list to prevent a crash
+            return User.objects.none()
+        
+        # If the user has no department, or something else goes wrong, return an empty list
+        return User.objects.none()

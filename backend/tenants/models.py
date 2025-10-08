@@ -15,6 +15,8 @@ class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     # This stores the user's role, with 'USER' as the default.
     role = models.CharField(max_length=10, choices=Role.choices, default=Role.USER)
+    # This stores the user's department (optional field).
+    department = models.CharField(max_length=100, blank=True, null=True, help_text="User's department")
 
     # This __str__ method is now correctly indented inside the Profile class.
     def __str__(self):

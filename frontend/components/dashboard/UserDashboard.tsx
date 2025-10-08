@@ -1,6 +1,9 @@
 'use client';
 
+import { useState } from 'react';
 import { Plus, MessageSquareWarning, CalendarDays, Info } from 'lucide-react';
+import UserRequestLicenseModal from './UserRequestLicenseModal';
+import ReportIssueModal from './ReportIssueModal';
 
 // --- TYPE DEFINITIONS ---
 type AssignedLicense = {
@@ -43,6 +46,17 @@ const isExpired = (renewalDate: string): boolean => {
 
 export default function UserDashboard() {
   const userName = "John"; // This would be fetched from user data in a real app
+  const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
+  const [isReportIssueModalOpen, setIsReportIssueModalOpen] = useState(false);
+
+  const handleRequestSuccess = () => {
+    // Refresh the license list or show success message
+    alert('License request submitted successfully! Your department head will review it.');
+  };
+
+  const handleReportIssueSuccess = () => {
+    alert('Issue reported successfully! Your department head will be notified.');
+  };
 
   return (
     <div className="space-y-6 text-gray-900">
@@ -54,11 +68,17 @@ export default function UserDashboard() {
 
       {/* Action Buttons */}
       <div className="flex space-x-3">
-        <button className="flex items-center px-5 py-3 bg-blue-600 text-black text-base font-semibold rounded-lg hover:bg-blue-700 transition-colors">
+        <button 
+          onClick={() => setIsRequestModalOpen(true)}
+          className="flex items-center px-5 py-3 bg-blue-600 text-white text-base font-semibold rounded-lg hover:bg-blue-700 transition-colors"
+        >
           <Plus className="h-5 w-5 mr-2" />
           Request New License
         </button>
-        <button className="flex items-center px-5 py-3 bg-amber-600 text-black text-base font-semibold rounded-lg hover:bg-amber-700 transition-colors">
+        <button 
+          onClick={() => setIsReportIssueModalOpen(true)}
+          className="flex items-center px-5 py-3 bg-amber-600 text-white text-base font-semibold rounded-lg hover:bg-amber-700 transition-colors"
+        >
           <MessageSquareWarning className="h-5 w-5 mr-2" />
           Report Issue
         </button>
@@ -104,6 +124,21 @@ export default function UserDashboard() {
           );
         })}
       </div>
+
+      {/* Request License Modal */}
+      <UserRequestLicenseModal
+        isOpen={isRequestModalOpen}
+        onClose={() => setIsRequestModalOpen(false)}
+        onSuccess={handleRequestSuccess}
+      />
+
+      {/* Report Issue Modal */}
+      <ReportIssueModal
+        isOpen={isReportIssueModalOpen}
+        onClose={() => setIsReportIssueModalOpen(false)}
+        onSuccess={handleReportIssueSuccess}
+        userLicenses={mockUserLicenses}
+      />
     </div>
   );
 }
