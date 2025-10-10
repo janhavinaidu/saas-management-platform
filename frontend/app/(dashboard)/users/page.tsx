@@ -2,22 +2,33 @@
 
 import { useState, useEffect } from 'react';
 import { Search, Plus } from 'lucide-react';
+import { fetchWithAuth } from '../../../services/apiClient';
 // Corrected the import paths to be relative to fix the resolution error.
 import AllUsersTable from '../../dashboard/AllUsersTable';
 import AddUserModal from '../../dashboard/AddUserModal';
 import EditUserModal from '../../dashboard/EditUserModal';
 import DeleteConfirmationModal from '../../../components/dashboard/DeleteConfirmationModal';
 
-// Define the User type
+// Define the User type matching backend response
 type User = {
   id: number;
-  name: string;
+  username: string;
   email: string;
   department: string;
   role: string;
   licenses: number;
   status: 'active' | 'inactive';
   lastActive: string;
+};
+
+// Type for backend user response
+type BackendUser = {
+  id: number;
+  username: string;
+  email: string;
+  department: string | null;
+  role: string;
+  licenses_count: number;
 };
 
 // A local component for the stat cards specific to this page's design.
@@ -30,49 +41,59 @@ const StatCard = ({ title, value, bgColor, textColor }: { title: string, value: 
 
 export default function UsersPage() {
   // --- STATE FOR THE MODALS ---
-  // This state variable will control whether the "Add User" modal is visible.
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [deletingUser, setDeletingUser] = useState<User | null>(null);
   
   // --- STATE FOR USERS ---
-  // This state will manage the list of users - starting with empty array
   const [users, setUsers] = useState<User[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  // Load users from localStorage on component mount
-  useEffect(() => {
-    const savedUsers = localStorage.getItem('users');
-    if (savedUsers) {
-      try {
-        const parsedUsers = JSON.parse(savedUsers);
-        console.log('Loaded users from localStorage:', parsedUsers);
-        setUsers(parsedUsers);
-      } catch (error) {
-        console.error('Failed to parse saved users:', error);
-        setUsers([]);
+  // Fetch users from backend
+  const fetchUsers = async () => {
+    setIsLoading(true);
+    setError('');
+    try {
+      const response = await fetchWithAuth('http://127.0.0.1:8000/api/users/');
+      if (!response.ok) {
+        throw new Error('Failed to fetch users');
       }
-    } else {
-      console.log('No saved users found in localStorage');
+      const backendUsers: BackendUser[] = await response.json();
+      
+      // Transform backend users to frontend format
+      const transformedUsers: User[] = backendUsers.map(user => ({
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        department: user.department || 'Not Assigned',
+        role: user.role,
+        licenses: user.licenses_count || 0,
+        status: 'active',
+        lastActive: 'Recently'
+      }));
+      
+      setUsers(transformedUsers);
+    } catch (err: any) {
+      console.error('Failed to fetch users:', err);
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
     }
+  };
+
+  useEffect(() => {
+    fetchUsers();
   }, []);
 
-  // Save users to localStorage whenever users state changes
-  useEffect(() => {
-    if (users.length > 0) {
-      localStorage.setItem('users', JSON.stringify(users));
-      console.log('Saved users to localStorage:', users);
-    }
-  }, [users]);
-
-  // Function to add a new user
-  const addUser = (newUser: Omit<User, 'id' | 'status' | 'lastActive'>) => {
-    const user: User = {
-      ...newUser,
-      id: Math.max(...users.map(u => u.id), 0) + 1, // Generate new ID
-      status: 'active', // New users are active by default
-      lastActive: 'Just now'
-    };
-    setUsers(prevUsers => [...prevUsers, user]);
+  // Function to refresh users after adding or updating
+  const handleUserAdded = () => {
+    fetchUsers();
+  };
+  
+  // Function to refresh users list
+  const handleRefreshUsers = () => {
+    fetchUsers();
   };
 
   // Function to edit a user
@@ -151,7 +172,7 @@ export default function UsersPage() {
       <AddUserModal 
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        onAddUser={addUser}
+        onAddUser={handleUserAdded}
       />
       
       <EditUserModal
@@ -170,7 +191,7 @@ export default function UsersPage() {
             setDeletingUser(null);
           }
         }}
-        itemName={deletingUser?.name || ''}
+        itemName={deletingUser?.username || ''}
       />
     </>
   );

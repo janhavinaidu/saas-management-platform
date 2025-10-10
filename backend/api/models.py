@@ -24,6 +24,10 @@ class LicenseRequest(models.Model):
         PENDING = 'PENDING', 'Pending'
         APPROVED = 'APPROVED', 'Approved'
         REJECTED = 'REJECTED', 'Rejected'
+    
+    class ApprovalLevel(models.TextChoices):
+        DEPT_HEAD = 'DEPT_HEAD', 'Department Head'
+        ADMIN = 'ADMIN', 'Admin'
 
     request_type = models.CharField(max_length=10, choices=RequestType.choices)
     status = models.CharField(max_length=10, choices=RequestStatus.choices, default=RequestStatus.PENDING)
@@ -34,10 +38,41 @@ class LicenseRequest(models.Model):
     # The software application being requested.
     software = models.ForeignKey(SaaSApplication, on_delete=models.CASCADE)
     
-    # The Department Head who made the request.
+    # The person who made the request (could be user themselves, dept head, or admin)
     requested_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='created_requests')
     
+    # Who needs to approve this request (DEPT_HEAD or ADMIN)
+    approval_level = models.CharField(
+        max_length=10, 
+        choices=ApprovalLevel.choices, 
+        default=ApprovalLevel.ADMIN,
+        help_text="Who needs to approve this request"
+    )
+    
+    # If a dept head forwarded a user's request, track the original requester
+    original_requester = models.ForeignKey(
+        User, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        related_name='original_requests',
+        help_text="Original user who made the request (if forwarded by dept head)"
+    )
+    
     reason = models.TextField(blank=True, help_text="Reason for the request.")
+    
+    # Admin's response when approving/rejecting
+    admin_response = models.TextField(blank=True, help_text="Admin's response to the request")
+    
+    # Who approved/rejected the request
+    reviewed_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='reviewed_requests',
+        help_text="Admin who approved/rejected this request"
+    )
     
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

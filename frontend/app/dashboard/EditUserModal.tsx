@@ -1,11 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { fetchWithAuth } from '@/services/apiClient';
 
 // Define the User type
 type User = {
   id: number;
-  name: string;
+  username: string;
   email: string;
   department: string;
   role: string;
@@ -26,7 +27,7 @@ export default function EditUserModal({ isOpen, onClose, onEditUser, user }: Edi
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
-    name: '',
+    username: '',
     email: '',
     department: '',
     role: '',
@@ -38,7 +39,7 @@ export default function EditUserModal({ isOpen, onClose, onEditUser, user }: Edi
   useEffect(() => {
     if (user) {
       setFormData({
-        name: user.name,
+        username: user.username,
         email: user.email,
         department: user.department,
         role: user.role,
@@ -55,19 +56,49 @@ export default function EditUserModal({ isOpen, onClose, onEditUser, user }: Edi
     setError('');
     setIsSubmitting(true);
 
-    const updatedUser: User = {
-      ...user,
-      name: formData.name,
-      email: formData.email,
-      department: formData.department,
-      role: formData.role,
-      status: formData.status,
-      licenses: formData.licenses
-    };
+    try {
+      // Call the backend API to update the user
+      const response = await fetchWithAuth(
+        `http://127.0.0.1:8000/api/users/${user.id}/`,
+        {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: formData.email,
+            department: formData.department,
+            role: formData.role,
+          }),
+        }
+      );
 
-    onEditUser(updatedUser);
-    setIsSubmitting(false);
-    onClose();
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Failed to update user');
+      }
+
+      const responseData = await response.json();
+      
+      // Update the local state with the response from backend
+      const updatedUser: User = {
+        ...user,
+        username: formData.username,
+        email: responseData.user.email,
+        department: responseData.user.department || 'Not Assigned',
+        role: responseData.user.role,
+        status: formData.status,
+        licenses: formData.licenses
+      };
+
+      onEditUser(updatedUser);
+      onClose();
+    } catch (err: any) {
+      console.error('Failed to update user:', err);
+      setError(err.message || 'Failed to update user');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -89,15 +120,16 @@ export default function EditUserModal({ isOpen, onClose, onEditUser, user }: Edi
         
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label htmlFor="name" className="block text-sm font-medium text-gray-700">Full Name</label>
+            <label htmlFor="username" className="block text-sm font-medium text-gray-700">Username</label>
             <input 
               type="text" 
-              name="name" 
-              id="name" 
-              value={formData.name}
+              name="username" 
+              id="username" 
+              value={formData.username}
               onChange={handleInputChange}
               required 
-              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500"
+              disabled
+              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500 bg-gray-100"
             />
           </div>
           <div>

@@ -6,7 +6,7 @@ import { useState } from 'react';
 type AddUserModalProps = {
   isOpen: boolean;
   onClose: () => void;
-  onAddUser: (user: { name: string; email: string; department: string; role: string; password: string; licenses: number }) => void;
+  onAddUser: () => void; // Changed to just trigger a refresh
 };
 
 export default function AddUserModal({ isOpen, onClose, onAddUser }: AddUserModalProps) {
@@ -21,20 +21,37 @@ export default function AddUserModal({ isOpen, onClose, onAddUser }: AddUserModa
     setIsSubmitting(true);
 
     const formData = new FormData(e.currentTarget);
+    const fullName = formData.get('fullName') as string;
+    const username = fullName.toLowerCase().replace(/\s+/g, '.');
+    
     const payload = {
-      name: formData.get('fullName') as string,
+      username: username,
       email: formData.get('email') as string,
+      password: formData.get('password') as string,
       department: formData.get('department') as string,
       role: formData.get('role') as string,
-      password: formData.get('password') as string,
-      licenses: parseInt(formData.get('licenses') as string) || 0,
     };
 
-    // Add the user to the state
-    onAddUser(payload);
-    
-    setIsSubmitting(false);
-    onClose(); // Close the modal
+    try {
+      const response = await fetch('http://127.0.0.1:8000/api/register/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Failed to add user');
+      }
+
+      console.log('User added successfully:', payload);
+      onAddUser(); // Trigger refresh
+      onClose();
+    } catch (err: any) {
+      setError(err.message || 'Failed to add user. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -70,17 +87,6 @@ export default function AddUserModal({ isOpen, onClose, onAddUser }: AddUserModa
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700">Temporary Password</label>
               <input type="password" name="password" id="password" required className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500"/>
-            </div>
-            <div>
-              <label htmlFor="licenses" className="block text-sm font-medium text-gray-700">Number of Licenses</label>
-              <input 
-                type="number" 
-                name="licenses" 
-                id="licenses" 
-                min="0" 
-                defaultValue="0"
-                className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500"
-              />
             </div>
           
           {error && <p className="text-red-600 text-sm text-center">{error}</p>}

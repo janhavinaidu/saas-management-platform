@@ -74,15 +74,16 @@ export default function AddTeamMemberModal({ isOpen, onClose, onSuccess }: AddTe
 
       if (!response.ok) {
         const errorData = await response.json();
+        // Backend will return specific error messages for duplicate users
         throw new Error(errorData.detail || 'Failed to add team member');
       }
 
       console.log("Team member added successfully to department:", currentUserDepartment);
-      setIsSubmitting(false);
       onSuccess(); // This will refresh the team list
       onClose();
     } catch (err: any) {
       setError(err.message || 'Failed to add team member. Please try again.');
+    } finally {
       setIsSubmitting(false);
     }
   };

@@ -6,7 +6,7 @@ import { MoreHorizontal, Edit, Trash2 } from 'lucide-react';
 // --- TYPE DEFINITIONS ---
 type User = {
   id: number;
-  name: string;
+  username: string;
   email: string;
   department: string;
   role: string;
@@ -24,7 +24,7 @@ type AllUsersTableProps = {
 
 // --- HELPER COMPONENTS ---
 const UserAvatar = ({ name }: { name: string }) => {
-  const initials = name.split(' ').map(n => n[0]).join('');
+  const initials = name.split(/[\s._]+/).map(n => n[0]).join('').substring(0, 2).toUpperCase();
   // A simple hash function to get a consistent color
   const hash = name.split('').reduce((acc, char) => char.charCodeAt(0) + ((acc << 5) - acc), 0);
   const colors = ['bg-blue-100 text-blue-800', 'bg-purple-100 text-purple-800', 'bg-green-100 text-green-800', 'bg-yellow-100 text-yellow-800', 'bg-pink-100 text-pink-800'];
@@ -84,9 +84,9 @@ export default function AllUsersTable({ users, onEditUser, onDeleteUser }: AllUs
                 <tr key={user.id} className="hover:bg-gray-50">
                   <td className="py-3 px-4">
                     <div className="flex items-center">
-                      <UserAvatar name={user.name} />
+                      <UserAvatar name={user.username} />
                       <div className="ml-4">
-                        <div className="font-semibold text-gray-900">{user.name}</div>
+                        <div className="font-semibold text-gray-900">{user.username}</div>
                         <div className="text-sm text-gray-500">{user.email}</div>
                       </div>
                     </div>

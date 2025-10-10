@@ -1,18 +1,16 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
+import { fetchWithAuth } from '@/services/apiClient';
 
 const COLORS = ['#4f46e5', '#a855f7', '#06b6d4', '#64748b', '#a78bfa'];
 
-type User = {
+type BackendUser = {
   id: number;
-  name: string;
+  username: string;
   email: string;
-  department: string;
+  department: string | null;
   role: string;
-  licenses: number;
-  status: 'active' | 'inactive';
-  lastActive: string;
 };
 
 export default function AllocationChart() {
@@ -20,22 +18,21 @@ export default function AllocationChart() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const loadUsersFromLocalStorage = () => {
+    const loadUsersFromBackend = async () => {
       setLoading(true);
       try {
-        const savedUsers = localStorage.getItem('users');
-        if (savedUsers) {
-          const users: User[] = JSON.parse(savedUsers);
-          console.log('AllocationChart - Loaded users:', users);
+        const response = await fetchWithAuth('http://127.0.0.1:8000/api/users/');
+        if (response.ok) {
+          const users: BackendUser[] = await response.json();
+          console.log('AllocationChart - Loaded users from backend:', users);
 
-          // Aggregate license counts by department
+          // Aggregate user counts by department (not licenses, since we're counting users per department)
           const departmentMap: Record<string, number> = {};
           users.forEach(user => {
-            if (!user.department) {
-              console.log('User without department:', user);
+            if (!user.department || user.department === 'Not Assigned') {
               return;
             }
-            departmentMap[user.department] = (departmentMap[user.department] || 0) + (user.licenses || 0);
+            departmentMap[user.department] = (departmentMap[user.department] || 0) + 1;
           });
 
           console.log('AllocationChart - Department map:', departmentMap);
@@ -45,34 +42,28 @@ export default function AllocationChart() {
           console.log('AllocationChart - Chart data:', chartData);
           setData(chartData);
         } else {
-          console.log('AllocationChart - No users in localStorage');
+          console.log('AllocationChart - Failed to fetch users');
           setData([]);
         }
       } catch (error) {
-        console.error('Failed to parse users from localStorage:', error);
+        console.error('Failed to fetch users from backend:', error);
         setData([]);
       } finally {
         setLoading(false);
       }
     };
 
-    loadUsersFromLocalStorage();
+    loadUsersFromBackend();
 
-    // Listen for storage changes to update in real-time
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'users') {
-        loadUsersFromLocalStorage();
-      }
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+    // Refresh every 30 seconds
+    const interval = setInterval(loadUsersFromBackend, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   return (
     <div className="bg-white p-6 rounded-lg shadow-sm">
-      <h3 className="font-semibold text-lg text-gray-800">License Allocation by Department</h3>
-      <p className="text-sm text-gray-700 mb-4">Distribution of software licenses across departments</p>
+      <h3 className="font-semibold text-lg text-gray-800">User Distribution by Department</h3>
+      <p className="text-sm text-gray-700 mb-4">Number of users assigned to each department</p>
       <div style={{ width: '100%', height: 300 }}>
         {loading ? (
           <div className="flex items-center justify-center h-full">Loading...</div>
@@ -97,7 +88,7 @@ export default function AllocationChart() {
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>
-              <Tooltip formatter={(value: number) => `${value} licenses`} />
+              <Tooltip formatter={(value: number) => `${value} users`} />
               <Legend />
             </PieChart>
           </ResponsiveContainer>

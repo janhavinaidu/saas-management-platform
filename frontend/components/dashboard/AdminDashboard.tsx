@@ -12,6 +12,8 @@ import AllocationChart from '@/app/(dashboard)/AllocationChart';
 import TopAppsTable from '@/app/(dashboard)/TopAppsTable';
 import Navbar from '@/app/(dashboard)/Navbar';
 import Sidebar from '@/app/(dashboard)/Sidebar';
+import PendingRequestsPanel from '@/components/dashboard/PendingRequestsPanel';
+import AdminIssuesPanel from '@/components/dashboard/AdminIssuesPanel';
 
 // --- TYPE DEFINITIONS that EXACTLY match the backend responses ---
 type DashboardStats = {
@@ -36,38 +38,6 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
-  const [activeUsersCount, setActiveUsersCount] = useState(0);
-
-  // Load active users count from localStorage
-  useEffect(() => {
-    const loadActiveUsers = () => {
-      const savedUsers = localStorage.getItem('users');
-      if (savedUsers) {
-        try {
-          const parsedUsers: User[] = JSON.parse(savedUsers);
-          const activeCount = parsedUsers.filter(user => user.status === 'active').length;
-          setActiveUsersCount(activeCount);
-        } catch (error) {
-          console.error('Failed to parse users from localStorage:', error);
-          setActiveUsersCount(0);
-        }
-      } else {
-        setActiveUsersCount(0);
-      }
-    };
-
-    loadActiveUsers();
-
-    // Listen for storage changes to update in real-time
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'users') {
-        loadActiveUsers();
-      }
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
-  }, []);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -129,8 +99,8 @@ export default function AdminDashboard() {
         />
         <StatCard
           title="Active Users"
-          value={activeUsersCount.toLocaleString()}
-          change="From users management"
+          value={stats ? stats.active_users.toLocaleString() : '0'}
+          change="Currently active in system"
           icon={<Users className="h-5 w-5 text-purple-500" />}
         />
         <StatCard
@@ -152,6 +122,15 @@ export default function AdminDashboard() {
 
       <div>
         <TopAppsTable />
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <div>
+          <PendingRequestsPanel />
+        </div>
+        <div>
+          <AdminIssuesPanel />
+        </div>
       </div>
     </div>
   );
