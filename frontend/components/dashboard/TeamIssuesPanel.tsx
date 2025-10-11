@@ -157,10 +157,9 @@ export default function TeamIssuesPanel() {
     );
   }
 
-  // Filter issues by status
+  // Filter issues by status (backend already filters out resolved/closed)
   const openIssues = issues.filter(i => i.status === 'OPEN');
   const inProgressIssues = issues.filter(i => i.status === 'IN_PROGRESS');
-  const resolvedIssues = issues.filter(i => i.status === 'RESOLVED' || i.status === 'CLOSED');
 
   return (
     <>
@@ -171,14 +170,14 @@ export default function TeamIssuesPanel() {
             <h3 className="text-lg font-semibold text-gray-900">Team Issues</h3>
             {issues.length > 0 && (
               <span className="bg-orange-500 text-white text-xs font-bold px-2 py-1 rounded-full">
-                {openIssues.length} Open
+                {issues.length} Active
               </span>
             )}
           </div>
         </div>
 
         {/* Status Summary */}
-        <div className="grid grid-cols-3 gap-4 mb-4">
+        <div className="grid grid-cols-2 gap-4 mb-4">
           <div className="bg-red-50 rounded-lg p-3">
             <div className="text-2xl font-bold text-red-600">{openIssues.length}</div>
             <div className="text-sm text-red-700">Open</div>
@@ -186,10 +185,6 @@ export default function TeamIssuesPanel() {
           <div className="bg-yellow-50 rounded-lg p-3">
             <div className="text-2xl font-bold text-yellow-600">{inProgressIssues.length}</div>
             <div className="text-sm text-yellow-700">In Progress</div>
-          </div>
-          <div className="bg-green-50 rounded-lg p-3">
-            <div className="text-2xl font-bold text-green-600">{resolvedIssues.length}</div>
-            <div className="text-sm text-green-700">Resolved</div>
           </div>
         </div>
 

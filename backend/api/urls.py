@@ -21,7 +21,8 @@ from .views import (
     ForwardRequestToAdminView,
     DeptHeadTeamIssuesView,
     AdminAllIssuesView,
-    UpdateIssueStatusView
+    UpdateIssueStatusView,
+    UserAllocatedLicensesView
 )
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
@@ -87,5 +88,9 @@ urlpatterns = [
     
     # PATCH /api/issues/<id>/status/ -> Update issue status
     path('issues/<int:issue_id>/status/', UpdateIssueStatusView.as_view(), name='update-issue-status'),
+    
+    # --- USER LICENSE ENDPOINTS ---
+    # GET /api/user-licenses/ -> Get current user's allocated licenses
+    path('user-licenses/', UserAllocatedLicensesView.as_view(), name='user-allocated-licenses'),
 ]
 

@@ -158,14 +158,13 @@ export default function AdminIssuesPanel() {
     );
   }
 
-  // Filter issues
+  // Filter issues (backend already filters out resolved/closed)
   const filteredIssues = filterStatus === 'ALL' 
     ? issues 
     : issues.filter(i => i.status === filterStatus);
 
   const openIssues = issues.filter(i => i.status === 'OPEN');
   const inProgressIssues = issues.filter(i => i.status === 'IN_PROGRESS');
-  const resolvedIssues = issues.filter(i => i.status === 'RESOLVED' || i.status === 'CLOSED');
 
   return (
     <>
@@ -173,10 +172,10 @@ export default function AdminIssuesPanel() {
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center space-x-2">
             <AlertCircle className="h-5 w-5 text-orange-600" />
-            <h3 className="text-lg font-semibold text-gray-900">All Issues</h3>
-            {openIssues.length > 0 && (
+            <h3 className="text-lg font-semibold text-gray-900">Active Issues</h3>
+            {issues.length > 0 && (
               <span className="bg-orange-500 text-white text-xs font-bold px-2 py-1 rounded-full">
-                {openIssues.length} Open
+                {issues.length} Total
               </span>
             )}
           </div>
@@ -187,16 +186,14 @@ export default function AdminIssuesPanel() {
             onChange={(e) => setFilterStatus(e.target.value)}
             className="px-3 py-1.5 border border-gray-300 rounded-md text-sm text-gray-700"
           >
-            <option value="ALL">All Status</option>
-            <option value="OPEN">Open</option>
-            <option value="IN_PROGRESS">In Progress</option>
-            <option value="RESOLVED">Resolved</option>
-            <option value="CLOSED">Closed</option>
+            <option value="ALL">All Active</option>
+            <option value="OPEN">Open Only</option>
+            <option value="IN_PROGRESS">In Progress Only</option>
           </select>
         </div>
 
         {/* Status Summary */}
-        <div className="grid grid-cols-3 gap-4 mb-4">
+        <div className="grid grid-cols-2 gap-4 mb-4">
           <div className="bg-red-50 rounded-lg p-3">
             <div className="text-2xl font-bold text-red-600">{openIssues.length}</div>
             <div className="text-sm text-red-700">Open</div>
@@ -204,10 +201,6 @@ export default function AdminIssuesPanel() {
           <div className="bg-yellow-50 rounded-lg p-3">
             <div className="text-2xl font-bold text-yellow-600">{inProgressIssues.length}</div>
             <div className="text-sm text-yellow-700">In Progress</div>
-          </div>
-          <div className="bg-green-50 rounded-lg p-3">
-            <div className="text-2xl font-bold text-green-600">{resolvedIssues.length}</div>
-            <div className="text-sm text-green-700">Resolved</div>
           </div>
         </div>
 

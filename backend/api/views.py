@@ -559,7 +559,8 @@ class ForwardRequestToAdminView(APIView):
 
 class DeptHeadTeamIssuesView(APIView):
     """
-    Endpoint for department heads to view all issues reported by their team members.
+    Endpoint for department heads to view issues reported by their team members.
+    Only shows issues from regular users (not other dept heads) that are OPEN or IN_PROGRESS.
     """
     permission_classes = [permissions.IsAuthenticated]
     
@@ -579,9 +580,11 @@ class DeptHeadTeamIssuesView(APIView):
                     status=status.HTTP_400_BAD_REQUEST
                 )
             
-            # Get all issues reported by team members in this department
+            # Get issues from team members (exclude other dept heads) that are not resolved/closed
             team_issues = IssueReport.objects.filter(
-                reported_by__profile__department__iexact=user_profile.department
+                reported_by__profile__department__iexact=user_profile.department,
+                reported_by__profile__role='USER',  # Only regular users, not dept heads
+                status__in=['OPEN', 'IN_PROGRESS']  # Exclude resolved/closed
             ).select_related('reported_by').order_by('-created_at')
             
             issues_data = []
@@ -616,6 +619,7 @@ class DeptHeadTeamIssuesView(APIView):
 class AdminAllIssuesView(APIView):
     """
     Endpoint for admins to view all issues reported across the organization.
+    Only shows issues that are OPEN or IN_PROGRESS (resolved/closed are stored in history).
     """
     permission_classes = [permissions.IsAuthenticated]
     
@@ -627,8 +631,10 @@ class AdminAllIssuesView(APIView):
                     status=status.HTTP_403_FORBIDDEN
                 )
             
-            # Get all issues
-            all_issues = IssueReport.objects.all().select_related('reported_by').order_by('-created_at')
+            # Get all issues that are not resolved/closed
+            all_issues = IssueReport.objects.filter(
+                status__in=['OPEN', 'IN_PROGRESS']
+            ).select_related('reported_by').order_by('-created_at')
             
             issues_data = []
             for issue in all_issues:
@@ -803,5 +809,48 @@ class DepartmentStatsView(APIView):
             print(f"!!! ERROR in DepartmentStatsView: {e}")
             return Response(
                 {'detail': f'Failed to calculate department stats: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+class UserAllocatedLicensesView(APIView):
+    """
+    Endpoint for users to view their allocated licenses with full details.
+    Returns all approved licenses assigned to the logged-in user.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get(self, request):
+        try:
+            # Get all approved GRANT license requests for the current user
+            approved_software_ids = LicenseRequest.objects.filter(
+                user=request.user,
+                request_type='GRANT',
+                status='APPROVED'
+            ).values_list('software_id', flat=True).distinct()
+            
+            # Get the software objects with full details
+            allocated_licenses = SaaSApplication.objects.filter(id__in=approved_software_ids)
+            
+            licenses_data = []
+            for software in allocated_licenses:
+                licenses_data.append({
+                    'id': software.id,
+                    'name': software.name,
+                    'category': software.category,
+                    'vendor': software.vendor,
+                    'renewal_date': software.renewal_date.isoformat(),
+                    'description': software.description,
+                    'monthly_cost': float(software.monthly_cost)
+                })
+            
+            return Response({
+                'count': len(licenses_data),
+                'licenses': licenses_data
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            print(f"!!! ERROR in UserAllocatedLicensesView: {e}")
+            return Response(
+                {'detail': f'Failed to fetch allocated licenses: {str(e)}'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
