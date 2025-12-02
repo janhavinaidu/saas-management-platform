@@ -59,24 +59,37 @@ export const fetchWithAuth = async (url: string, options: RequestInit = {}): Pro
     }
 
     try {
+        // First request attempt
         let response = await fetch(`${API_BASE_URL}${url}`, { 
             ...options, 
-            headers,
-            credentials: 'include' // Important for sending cookies with cross-origin requests
+            headers: new Headers(headers), // Create a new Headers object to avoid reference issues
+            credentials: 'include'
         });
 
-        // Handle expired accessToken
+        // Handle expired accessToken with retry logic
         if (response.status === 401) {
             console.log("Access token expired. Attempting to refresh...");
             const newAccessToken = await getNewAccessToken();
 
             if (newAccessToken) {
-                headers.set("Authorization", `Bearer ${newAccessToken}`);
+                // Update headers with new token
+                const newHeaders = new Headers(headers);
+                newHeaders.set("Authorization", `Bearer ${newAccessToken}`);
+                
+                // Retry the original request with new token
                 response = await fetch(`${API_BASE_URL}${url}`, { 
-                    ...options, 
-                    headers,
+                    ...options,
+                    headers: newHeaders,
                     credentials: 'include'
                 });
+
+                // If still unauthorized after refresh, force logout
+                if (response.status === 401) {
+                    if (typeof window !== 'undefined') {
+                        window.location.href = '/login';
+                    }
+                    throw new Error('Session expired. Please log in again.');
+                }
             } else {
                 // If refresh fails, redirect to login
                 if (typeof window !== 'undefined') {
@@ -89,7 +102,9 @@ export const fetchWithAuth = async (url: string, options: RequestInit = {}): Pro
         // Handle other error statuses
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.detail || 'API request failed');
+            const errorMessage = errorData.detail || errorData.message || 'API request failed';
+            console.error(`API Error (${response.status}):`, errorMessage);
+            throw new Error(errorMessage);
         }
 
         return response;
