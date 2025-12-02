@@ -73,7 +73,7 @@ class UserSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'role', 'department', 'licenses_count']
+        fields = ['id', 'username', 'email', 'role', 'department', 'licenses_count', 'is_active']
     
     def get_licenses_count(self, obj):
         """Get count of approved licenses for this user"""

@@ -56,7 +56,7 @@ export default function SettingsPage() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
         <div>
-          <h2 className="text-2xl color-black font-bold tracking-tight">Settings</h2>
+          <h2 className="text-2xl font-bold tracking-tight text-gray-900">Settings</h2>
           <p className="text-gray-500">Manage your account and application preferences</p>
         </div>
         <div className="flex items-center space-x-2">

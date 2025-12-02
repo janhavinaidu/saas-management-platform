@@ -69,6 +69,7 @@ export default function EditUserModal({ isOpen, onClose, onEditUser, user }: Edi
             email: formData.email,
             department: formData.department,
             role: formData.role,
+            is_active: formData.status === 'active',
           }),
         }
       );

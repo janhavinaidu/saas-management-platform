@@ -2,14 +2,13 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Package, Users, Settings } from 'lucide-react';
+import { LayoutDashboard, Package, Users } from 'lucide-react';
 
 // An array of navigation items with the corrected href for Dashboard.
 const navItems = [
-  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard }, // <-- CORRECTED LINK
+  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Inventory', href: '/inventory', icon: Package },
   { name: 'Users', href: '/users', icon: Users },
-  { name: 'Settings', href: '/settings', icon: Settings },
 ];
 
 export default function Sidebar() {
@@ -19,7 +18,7 @@ export default function Sidebar() {
     <aside className="w-64 bg-white text-gray-800 flex-shrink-0 border-r border-gray-200 flex flex-col">
       {/* Sidebar Header */}
       <div className="h-16 flex items-center px-6 border-b border-gray-200">
-        <h2 className="text-xl font-bold">SaaS Manager</h2>
+        <h2 className="text-xl font-bold text-gray-900">SaaS Manager</h2>
       </div>
 
       {/* Navigation Links */}
@@ -36,8 +35,8 @@ export default function Sidebar() {
                   className={`flex items-center px-4 py-2.5 rounded-lg text-sm font-medium transition-colors
                     ${
                       isActive
-                        ? 'bg-blue-600 text-black shadow-sm' // Active link style
-                        : 'text-black hover:bg-gray-100' // Inactive link style
+                        ? 'bg-blue-600 text-white shadow-sm' // Active link style
+                        : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900' // Inactive link style
                     }`}
                 >
                   <item.icon className="w-5 h-5 mr-3" />

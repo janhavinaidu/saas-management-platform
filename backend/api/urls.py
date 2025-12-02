@@ -22,7 +22,10 @@ from .views import (
     DeptHeadTeamIssuesView,
     AdminAllIssuesView,
     UpdateIssueStatusView,
-    UserAllocatedLicensesView
+    UserAllocatedLicensesView,
+    TriggerOptimizationAgentView,
+    AIRecommendationsView,
+    LicenseChatbotView
 )
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
@@ -92,5 +95,13 @@ urlpatterns = [
     # --- USER LICENSE ENDPOINTS ---
     # GET /api/user-licenses/ -> Get current user's allocated licenses
     path('user-licenses/', UserAllocatedLicensesView.as_view(), name='user-allocated-licenses'),
+    
+    # --- AI OPTIMIZATION ENDPOINTS ---
+    # POST /api/run-optimization-agent/ -> Trigger AI agent to analyze license usage
+    path('run-optimization-agent/', TriggerOptimizationAgentView.as_view(), name='run-optimization-agent'),
+    # GET /api/ai-recommendations/ -> Fetch latest AI recommendations
+    path('ai-recommendations/', AIRecommendationsView.as_view(), name='ai-recommendations'),
+    # POST /api/license-chatbot/ -> Ask questions about license data
+    path('license-chatbot/', LicenseChatbotView.as_view(), name='license-chatbot'),
 ]
 

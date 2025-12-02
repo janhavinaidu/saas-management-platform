@@ -175,17 +175,144 @@ class InventoryStatsView(APIView):
                     elif software.renewal_date <= thirty_days_from_now:
                         expiring_soon += 1
             
+            # Build software list for charts
+            software_list = []
+            for app in all_software:
+                software_list.append({
+                    'name': app.name,
+                    'vendor': app.vendor,
+                    'category': app.category,
+                    'total_licenses': app.total_licenses,
+                    'monthly_cost': str(app.monthly_cost),
+                    'renewal_date': str(app.renewal_date)
+                })
+            
             data = {
                 'total_software': total_software,
                 'active_licenses': active_licenses,
                 'expiring_soon': expiring_soon,
                 'expired': expired,
+                'software_list': software_list,  # Added for charts
             }
             return Response(data)
         
         except Exception as e:
             print(f"!!! ERROR in InventoryStatsView: {e}")
             return Response({'error': 'Failed to calculate inventory stats.'}, status=500)
+
+
+
+from .tasks import run_license_optimization_task # <-- Import the task
+
+# --- NEW VIEW TO ADD ---
+class TriggerOptimizationAgentView(APIView):
+    """
+    An endpoint that triggers the Celery task to run the AI agent.
+    """
+    permission_classes = [permissions.IsAuthenticated] # Should be Admin-only
+
+    def post(self, request, *args, **kwargs):
+        try:
+            # .delay() is how you tell Celery to run this task in the background.
+            task = run_license_optimization_task.delay()
+            print(f"✅ Celery task started with ID: {task.id}")
+            return Response(
+                {"message": "AI license optimization task has been started. Results will be available shortly.", "task_id": str(task.id)},
+                status=status.HTTP_202_ACCEPTED
+            )
+        except Exception as e:
+            print(f"❌ Error starting Celery task: {e}")
+            # If Celery is not running, fall back to running synchronously
+            try:
+                from .license_agent import run_optimization_agent
+                from .models import AIRecommendation
+                
+                print("⚠️ Celery not available, running synchronously...")
+                recommendations = run_optimization_agent()
+                AIRecommendation.objects.create(recommendations_text=recommendations)
+                
+                return Response(
+                    {"message": "AI optimization completed (synchronous mode). Celery worker may not be running.", "warning": "Consider starting Celery for better performance."},
+                    status=status.HTTP_200_OK
+                )
+            except Exception as sync_error:
+                print(f"❌ Synchronous execution also failed: {sync_error}")
+                return Response(
+                    {"error": f"Failed to run optimization: {str(sync_error)}"},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
+
+
+class AIRecommendationsView(APIView):
+    """
+    Endpoint to fetch the latest AI recommendations
+    """
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get(self, request, *args, **kwargs):
+        try:
+            from .models import AIRecommendation
+            
+            # Get the latest recommendation
+            latest = AIRecommendation.objects.first()
+            
+            if not latest:
+                return Response(
+                    {"recommendations": None, "created_at": None},
+                    status=status.HTTP_200_OK
+                )
+            
+            return Response(
+                {
+                    "recommendations": latest.recommendations_text,
+                    "created_at": latest.created_at.isoformat()
+                },
+                status=status.HTTP_200_OK
+            )
+        except Exception as e:
+            # If table doesn't exist yet, return empty response
+            return Response(
+                {
+                    "recommendations": None, 
+                    "created_at": None,
+                    "error": "Database table not created yet. Please run migrations: python manage.py makemigrations && python manage.py migrate"
+                },
+                status=status.HTTP_200_OK
+            )
+
+
+class LicenseChatbotView(APIView):
+    """
+    Interactive chatbot endpoint for asking questions about license data
+    """
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def post(self, request, *args, **kwargs):
+        from .license_agent import chat_with_license_data
+        
+        question = request.data.get('question', '')
+        
+        if not question:
+            return Response(
+                {"error": "Question is required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            answer = chat_with_license_data(question)
+            return Response(
+                {
+                    "question": question,
+                    "answer": answer
+                },
+                status=status.HTTP_200_OK
+            )
+        except Exception as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
 
 # --- THIS IS THE CORRECTED VIEW ---
 class DashboardStatsView(APIView):
@@ -217,11 +344,15 @@ class DashboardStatsView(APIView):
             # Use total software count as a proxy for total licenses for now
             total_licenses = inventory_queryset.count()
 
-            data = {
-                'total_licenses': total_licenses,
-                'active_users': active_users,
-                'cost_savings': round(cost_savings, 2),
-            }
+            # Get users by department
+            users_by_dept = {}
+            for user in User.objects.filter(is_active=True):
+                dept = getattr(user, 'department', None)
+                if hasattr(user, 'profile'):
+                    dept = user.profile.department if hasattr(user.profile, 'department') else None
+                
+                dept_name = dept if dept else 'No Department'
+                users_by_dept[dept_name] = users_by_dept.get(dept_name, 0) + 1
             
             # --- THIS IS THE FIX ---
             # We must include `total_monthly_cost` in the data we send back.
@@ -229,7 +360,8 @@ class DashboardStatsView(APIView):
                 'total_licenses': total_licenses,
                 'active_users': active_users,
                 'cost_savings': round(cost_savings, 2),
-                'total_monthly_cost': round(float(total_monthly_cost_decimal), 2), # <-- THE MISSING PIECE
+                'total_monthly_cost': round(float(total_monthly_cost_decimal), 2),
+                'users_by_department': users_by_dept
             }
             return Response(data)
         
@@ -282,11 +414,17 @@ class UserUpdateView(APIView):
             department = request.data.get('department')
             role = request.data.get('role')
             email = request.data.get('email')
+            is_active = request.data.get('is_active')
             
             # Update email if provided
             if email:
                 user.email = email
-                user.save()
+            
+            # Update is_active if provided
+            if is_active is not None:
+                user.is_active = bool(is_active)
+            
+            user.save()
             
             # Update department if provided
             if department is not None:

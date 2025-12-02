@@ -29,6 +29,7 @@ type BackendUser = {
   department: string | null;
   role: string;
   licenses_count: number;
+  is_active: boolean;
 };
 
 // A local component for the stat cards specific to this page's design.
@@ -69,7 +70,7 @@ export default function UsersPage() {
         department: user.department || 'Not Assigned',
         role: user.role,
         licenses: user.licenses_count || 0,
-        status: 'active',
+        status: user.is_active ? 'active' : 'inactive',
         lastActive: 'Recently'
       }));
       
@@ -127,7 +128,7 @@ export default function UsersPage() {
         {/* Header Section */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
           <div>
-            <h2 className="text-2xl font-bold tracking-tight">Users</h2>
+            <h2 className="text-2xl font-bold tracking-tight text-gray-900">Users</h2>
             <p className="text-gray-500">Manage user accounts and license assignments</p>
           </div>
           <div className="flex items-center space-x-2">

@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 """
 
 from pathlib import Path
+import os # Import os for environment variables
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -20,7 +21,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-YOUR-SECRET-KEY' # Replace with your actual key
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-YOUR-SECRET-KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -97,18 +98,10 @@ DATABASES = {
 # https://docs.djangoproject.com/en/5.0/ref/settings/#auth-password-validators
 
 AUTH_PASSWORD_VALIDATORS = [
-    {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
-    },
+    { 'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator', },
+    { 'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator', },
+    { 'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator', },
+    { 'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator', },
 ]
 
 
@@ -116,11 +109,8 @@ AUTH_PASSWORD_VALIDATORS = [
 # https://docs.djangoproject.com/en/5.0/topics/i18n/
 
 LANGUAGE_CODE = 'en-us'
-
 TIME_ZONE = 'UTC'
-
 USE_I18N = True
-
 USE_TZ = True
 
 
@@ -138,21 +128,29 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # --- Our Custom Settings ---
 
 # CORS Configuration
-# This tells Django that it's okay to accept requests from our frontend server.
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
-    "http://192.168.1.11:3000",  # Local network IP
 ]
-# DRF + JWT Auth
+
+# DRF + JWT Auth Configuration
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
+    # --- THIS IS THE SECURITY UPDATE ---
+    # We now require users to be authenticated by default for all API endpoints.
     'DEFAULT_PERMISSION_CLASSES': (
-        'rest_framework.permissions.AllowAny',
+        'rest_framework.permissions.IsAuthenticated',
     ),
 }
 
+# --- THIS IS THE NEW CELERY CONFIGURATION ---
+# It tells Celery to use your local Redis server as the message broker.
+CELERY_BROKER_URL = 'redis://localhost:6379/0'
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'UTC'
 
-# Note: In production, you would replace the above with your actual frontend domain.

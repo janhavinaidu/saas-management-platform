@@ -107,7 +107,7 @@ export default function RequestLicenseModal({ isOpen, onClose, onSubmitSuccess, 
                 value={requestType}
                 onChange={(e) => setRequestType(e.target.value)}
                 disabled={!!softwareToRevoke}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-100 disabled:cursor-not-allowed text-gray-900"
               >
                 <option value="GRANT">Grant New License</option>
                 <option value="REVOKE">Revoke Existing License</option>
@@ -122,7 +122,7 @@ export default function RequestLicenseModal({ isOpen, onClose, onSubmitSuccess, 
                 onChange={(e) => setSoftwareName(e.target.value)}
                 placeholder="e.g., Figma Professional"
                 disabled={!!softwareToRevoke}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-100 disabled:cursor-not-allowed text-gray-900 placeholder-gray-500"
                 required
               />
             </div>
@@ -134,7 +134,7 @@ export default function RequestLicenseModal({ isOpen, onClose, onSubmitSuccess, 
                 onChange={(e) => setReason(e.target.value)}
                 rows={3}
                 placeholder="e.g., Required for new marketing project"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-gray-900 placeholder-gray-500"
               />
             </div>
           </div>

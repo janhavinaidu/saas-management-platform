@@ -104,15 +104,15 @@ export default function AddSoftwareModal({ isOpen, onClose, onSuccess, initialDa
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label htmlFor="softwareName" className="block text-sm font-medium text-gray-700">Software Name</label>
-              <input type="text" name="softwareName" id="softwareName" defaultValue={initialData?.name} placeholder="e.g., Microsoft Office 365" required className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"/>
+              <input type="text" name="softwareName" id="softwareName" defaultValue={initialData?.name} placeholder="e.g., Microsoft Office 365" required className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500"/>
             </div>
             <div>
               <label htmlFor="vendor" className="block text-sm font-medium text-gray-700">Vendor</label>
-              <input type="text" name="vendor" id="vendor" defaultValue={initialData?.vendor} placeholder="e.g., Microsoft Corporation" required className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"/>
+              <input type="text" name="vendor" id="vendor" defaultValue={initialData?.vendor} placeholder="e.g., Microsoft Corporation" required className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500"/>
             </div>
             <div>
               <label htmlFor="category" className="block text-sm font-medium text-gray-700">Category</label>
-              <select name="category" id="category" defaultValue={initialData?.category} required className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm">
+              <select name="category" id="category" defaultValue={initialData?.category} required className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900">
                 <option value="">Select a category</option>
                 <option value="Productivity">Productivity</option>
                 <option value="Design">Design</option>
@@ -123,20 +123,20 @@ export default function AddSoftwareModal({ isOpen, onClose, onSuccess, initialDa
             </div>
             <div>
               <label htmlFor="totalLicenses" className="block text-sm font-medium text-gray-700">Total Licenses</label>
-              <input type="number" name="totalLicenses" id="totalLicenses" defaultValue={initialData?.total_licenses} placeholder="100" required className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"/>
+              <input type="number" name="totalLicenses" id="totalLicenses" defaultValue={initialData?.total_licenses} placeholder="100" required className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500"/>
             </div>
             <div>
               <label htmlFor="monthlyCost" className="block text-sm font-medium text-gray-700">Monthly Cost ($)</label>
-              <input type="number" step="0.01" name="monthlyCost" id="monthlyCost" defaultValue={initialData?.monthly_cost} placeholder="1500.00" required className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"/>
+              <input type="number" step="0.01" name="monthlyCost" id="monthlyCost" defaultValue={initialData?.monthly_cost} placeholder="1500.00" required className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500"/>
             </div>
             <div>
               <label htmlFor="renewalDate" className="block text-sm font-medium text-gray-700">Renewal Date</label>
-              <input type="date" name="renewalDate" id="renewalDate" defaultValue={initialData?.renewal_date} required className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"/>
+              <input type="date" name="renewalDate" id="renewalDate" defaultValue={initialData?.renewal_date} required className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900"/>
             </div>
           </div>
           <div>
             <label htmlFor="description" className="block text-sm font-medium text-gray-700">Description</label>
-            <textarea name="description" id="description" rows={3} defaultValue={initialData?.description} placeholder="Brief description of the software and its use case..." className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"></textarea>
+            <textarea name="description" id="description" rows={3} defaultValue={initialData?.description} placeholder="Brief description of the software and its use case..." className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500"></textarea>
           </div>
           
           {error && <p className="text-red-600 text-sm text-center">{error}</p>}
