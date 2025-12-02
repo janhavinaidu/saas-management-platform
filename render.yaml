@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: saas-backend
+    env: python
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: |
+      cd backend && \
+      python manage.py migrate && \
+      python manage.py collectstatic --noinput && \
+      gunicorn saas_project.wsgi:application --bind 0.0.0.0:$PORT
+    envVars:
+      - key: DATABASE_URL
+        sync: false
