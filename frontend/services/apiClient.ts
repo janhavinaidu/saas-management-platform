@@ -1,4 +1,5 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000";
+// Use production backend URL as fallback if environment variable is not set
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "https://saas-management-platform-1.onrender.com";
 
 /**
  * Refresh token handler
@@ -57,18 +58,43 @@ export const fetchWithAuth = async (url: string, options: RequestInit = {}): Pro
         headers.set("Content-Type", "application/json");
     }
 
-    let response = await fetch(`${API_BASE_URL}${url}`, { ...options, headers });
+    try {
+        let response = await fetch(`${API_BASE_URL}${url}`, { 
+            ...options, 
+            headers,
+            credentials: 'include' // Important for sending cookies with cross-origin requests
+        });
 
-    // Handle expired accessToken
-    if (response.status === 401) {
-        console.log("Access token expired. Attempting to refresh...");
-        const newAccessToken = await getNewAccessToken();
+        // Handle expired accessToken
+        if (response.status === 401) {
+            console.log("Access token expired. Attempting to refresh...");
+            const newAccessToken = await getNewAccessToken();
 
-        if (newAccessToken) {
-            headers.set("Authorization", `Bearer ${newAccessToken}`);
-            response = await fetch(`${API_BASE_URL}${url}`, { ...options, headers });
+            if (newAccessToken) {
+                headers.set("Authorization", `Bearer ${newAccessToken}`);
+                response = await fetch(`${API_BASE_URL}${url}`, { 
+                    ...options, 
+                    headers,
+                    credentials: 'include'
+                });
+            } else {
+                // If refresh fails, redirect to login
+                if (typeof window !== 'undefined') {
+                    window.location.href = '/login';
+                }
+                throw new Error('Authentication required');
+            }
         }
-    }
 
-    return response;
+        // Handle other error statuses
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.detail || 'API request failed');
+        }
+
+        return response;
+    } catch (error) {
+        console.error('API request error:', error);
+        throw error;
+    }
 };
