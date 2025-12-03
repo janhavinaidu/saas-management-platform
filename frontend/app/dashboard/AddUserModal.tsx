@@ -7,9 +7,15 @@ type AddUserModalProps = {
   isOpen: boolean;
   onClose: () => void;
   onAddUser: () => void;
+  autoDepartment?: string | null;  
 };
 
-export default function AddUserModal({ isOpen, onClose, onAddUser }: AddUserModalProps) {
+export default function AddUserModal({
+  isOpen,
+  onClose,
+  onAddUser,
+  autoDepartment = null,
+}: AddUserModalProps) {
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -24,21 +30,21 @@ export default function AddUserModal({ isOpen, onClose, onAddUser }: AddUserModa
 
     const fullName = (formData.get('fullName') as string)?.trim();
     const email = formData.get('email') as string;
-    const department = formData.get('department') as string;
-    const role = formData.get('role') as string;
-    const password = formData.get('password') as string;
 
-    // Auto-username generation
     const username =
-      fullName?.toLowerCase().replace(/\s+/g, '.') ||
-      email.split('@')[0];
+      fullName?.toLowerCase().replace(/\s+/g, '.') || email.split('@')[0];
+
+    const role = formData.get('role') as string;
+    const dept = autoDepartment || (formData.get('department') as string);
 
     const payload = {
       username,
       email,
-      password,
-      department,
-      role,
+      password: formData.get('password'),
+      profile: {
+        role: role,
+        department: dept,
+      },
     };
 
     try {
@@ -47,23 +53,19 @@ export default function AddUserModal({ isOpen, onClose, onAddUser }: AddUserModa
         body: JSON.stringify(payload),
       });
 
+      const data = await response.json();
       if (!response.ok) {
-        let errorData: any = {};
-        try {
-          errorData = await response.json();
-        } catch {}
-
         throw new Error(
-          errorData.detail ||
-            Object.values(errorData).flat().join(' ') ||
+          data.detail ||
+            Object.values(data).flat().join(' ') ||
             'Failed to add user'
         );
       }
 
-      onAddUser(); // Refresh table
-      onClose();   // Close modal
+      onAddUser();
+      onClose();
     } catch (err: any) {
-      setError(err.message || 'Failed to add user. Please try again.');
+      setError(err.message || 'Failed to add user.');
     } finally {
       setIsSubmitting(false);
     }
@@ -72,55 +74,31 @@ export default function AddUserModal({ isOpen, onClose, onAddUser }: AddUserModa
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4">
       <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md text-gray-900">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold text-gray-800">Add New User</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-800 text-2xl">
-            &times;
-          </button>
-        </div>
 
-        <p className="text-sm text-gray-500 mb-6">
-          Enter details for the new user account.
-        </p>
+        <h2 className="text-xl font-semibold mb-4">Add New User</h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+
           <div>
             <label className="block text-sm font-medium">Full Name</label>
-            <input
-              type="text"
-              name="fullName"
-              required
-              className="mt-1 w-full px-3 py-2 border rounded-md shadow-sm"
-            />
+            <input name="fullName" required className="input" />
           </div>
 
           <div>
             <label className="block text-sm font-medium">Email</label>
-            <input
-              type="email"
-              name="email"
-              required
-              className="mt-1 w-full px-3 py-2 border rounded-md shadow-sm"
-            />
+            <input name="email" type="email" required className="input" />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium">Department</label>
-            <input
-              type="text"
-              name="department"
-              required
-              className="mt-1 w-full px-3 py-2 border rounded-md shadow-sm"
-            />
-          </div>
+          {!autoDepartment && (
+            <div>
+              <label className="block text-sm font-medium">Department</label>
+              <input name="department" required className="input" />
+            </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium">Role</label>
-            <select
-              name="role"
-              required
-              className="mt-1 w-full px-3 py-2 border rounded-md shadow-sm"
-            >
+            <select name="role" required className="input">
               <option value="USER">User</option>
               <option value="DEPT_HEAD">Department Head</option>
               <option value="ADMIN">Admin</option>
@@ -129,36 +107,22 @@ export default function AddUserModal({ isOpen, onClose, onAddUser }: AddUserModa
 
           <div>
             <label className="block text-sm font-medium">Temporary Password</label>
-            <input
-              type="password"
-              name="password"
-              required
-              className="mt-1 w-full px-3 py-2 border rounded-md shadow-sm"
-            />
+            <input name="password" type="password" required className="input" />
           </div>
 
           {error && (
             <p className="text-red-600 text-sm text-center">{error}</p>
           )}
 
-          <div className="mt-6 flex justify-end space-x-3">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={isSubmitting}
-              className="px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300"
-            >
+          <div className="flex justify-end space-x-3">
+            <button type="button" onClick={onClose} className="btn-gray">
               Cancel
             </button>
-
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-blue-400"
-            >
+            <button type="submit" disabled={isSubmitting} className="btn-blue">
               {isSubmitting ? 'Adding…' : 'Add User'}
             </button>
           </div>
+
         </form>
       </div>
     </div>
