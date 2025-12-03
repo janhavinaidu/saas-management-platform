@@ -15,7 +15,7 @@ type User = {
   lastActive: string;
 };
 
-// Define the shape of the props this modal receives
+// Define the props for the modal
 type EditUserModalProps = {
   isOpen: boolean;
   onClose: () => void;
@@ -35,7 +35,6 @@ export default function EditUserModal({ isOpen, onClose, onEditUser, user }: Edi
     licenses: 0
   });
 
-  // Update form data when user prop changes
   useEffect(() => {
     if (user) {
       setFormData({
@@ -57,31 +56,20 @@ export default function EditUserModal({ isOpen, onClose, onEditUser, user }: Edi
     setIsSubmitting(true);
 
     try {
-      // Call the backend API to update the user
-      const response = await fetchWithAuth(
-        `http://127.0.0.1:8000/api/users/${user.id}/`,
-        {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            email: formData.email,
-            department: formData.department,
-            role: formData.role,
-            is_active: formData.status === 'active',
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Failed to update user');
-      }
+      // ❗ FIXED — RELATIVE URL (automatically uses API_BASE_URL inside fetchWithAuth)
+      const response = await fetchWithAuth(`/api/users/${user.id}/`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: formData.email,
+          department: formData.department,
+          role: formData.role,
+          is_active: formData.status === 'active',
+        }),
+      });
 
       const responseData = await response.json();
-      
-      // Update the local state with the response from backend
+
       const updatedUser: User = {
         ...user,
         username: formData.username,
@@ -94,6 +82,7 @@ export default function EditUserModal({ isOpen, onClose, onEditUser, user }: Edi
 
       onEditUser(updatedUser);
       onClose();
+
     } catch (err: any) {
       console.error('Failed to update user:', err);
       setError(err.message || 'Failed to update user');
@@ -104,10 +93,7 @@ export default function EditUserModal({ isOpen, onClose, onEditUser, user }: Edi
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   return (
@@ -117,96 +103,87 @@ export default function EditUserModal({ isOpen, onClose, onEditUser, user }: Edi
           <h2 className="text-xl font-semibold text-gray-800">Edit User</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-800 text-2xl">&times;</button>
         </div>
-        <p className="text-sm text-gray-500 mb-6">Update the user details below.</p>
-        
+
         <form onSubmit={handleSubmit} className="space-y-4">
+
+          {/* username */}
           <div>
-            <label htmlFor="username" className="block text-sm font-medium text-gray-700">Username</label>
-            <input 
-              type="text" 
-              name="username" 
-              id="username" 
+            <label className="block text-sm font-medium text-gray-700">Username</label>
+            <input
+              type="text"
+              name="username"
               value={formData.username}
-              onChange={handleInputChange}
-              required 
               disabled
-              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500 bg-gray-100"
+              className="mt-1 w-full px-3 py-2 border bg-gray-100 rounded-md text-gray-900"
             />
           </div>
+
+          {/* email */}
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email Address</label>
-            <input 
-              type="email" 
-              name="email" 
-              id="email" 
+            <label className="block text-sm font-medium text-gray-700">Email</label>
+            <input
+              name="email"
+              type="email"
               value={formData.email}
               onChange={handleInputChange}
-              required 
-              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500"
+              required
+              className="mt-1 w-full px-3 py-2 border rounded-md"
             />
           </div>
+
+          {/* department */}
           <div>
-            <label htmlFor="department" className="block text-sm font-medium text-gray-700">Department</label>
-            <input 
-              type="text" 
-              name="department" 
-              id="department" 
+            <label className="block text-sm font-medium text-gray-700">Department</label>
+            <input
+              name="department"
+              type="text"
               value={formData.department}
               onChange={handleInputChange}
-              required 
-              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500"
+              required
+              className="mt-1 w-full px-3 py-2 border rounded-md"
             />
           </div>
+
+          {/* role */}
           <div>
-            <label htmlFor="role" className="block text-sm font-medium text-gray-700">Role</label>
-            <select 
-              name="role" 
-              id="role" 
+            <label className="block text-sm font-medium text-gray-700">Role</label>
+            <select
+              name="role"
               value={formData.role}
               onChange={handleInputChange}
-              required 
-              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900"
+              required
+              className="mt-1 w-full px-3 py-2 border rounded-md"
             >
               <option value="USER">User</option>
               <option value="DEPT_HEAD">Department Head</option>
               <option value="ADMIN">Admin</option>
             </select>
           </div>
+
+          {/* status */}
           <div>
-            <label htmlFor="status" className="block text-sm font-medium text-gray-700">Status</label>
-            <select 
-              name="status" 
-              id="status" 
+            <label className="block text-sm font-medium text-gray-700">Status</label>
+            <select
+              name="status"
               value={formData.status}
               onChange={handleInputChange}
-              required 
-              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900"
+              required
+              className="mt-1 w-full px-3 py-2 border rounded-md"
             >
               <option value="active">Active</option>
               <option value="inactive">Inactive</option>
             </select>
           </div>
-          <div>
-            <label htmlFor="licenses" className="block text-sm font-medium text-gray-700">Number of Licenses</label>
-            <input 
-              type="number" 
-              name="licenses" 
-              id="licenses" 
-              min="0" 
-              value={formData.licenses}
-              onChange={handleInputChange}
-              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900"
-            />
-          </div>
-          
-          {error && <p className="text-red-600 text-sm text-center">{error}</p>}
+
+          {error && <p className="text-red-600 text-center text-sm">{error}</p>}
 
           <div className="mt-6 flex justify-end space-x-3">
-            <button type="button" onClick={onClose} disabled={isSubmitting} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">Cancel</button>
-            <button type="submit" disabled={isSubmitting} className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-blue-400">
+            <button type="button" onClick={onClose} className="px-4 py-2 bg-gray-200 rounded-md">Cancel</button>
+            <button type="submit" disabled={isSubmitting} className="px-4 py-2 bg-blue-600 text-white rounded-md">
               {isSubmitting ? 'Updating...' : 'Update User'}
             </button>
           </div>
+
         </form>
       </div>
     </div>

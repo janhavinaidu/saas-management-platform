@@ -1,12 +1,12 @@
 'use client';
 
 import { useState } from 'react';
+import { fetchWithAuth } from '../../services/apiClient';
 
-// Define the shape of the props this modal receives
 type AddUserModalProps = {
   isOpen: boolean;
   onClose: () => void;
-  onAddUser: () => void; // Changed to just trigger a refresh
+  onAddUser: () => void;
 };
 
 export default function AddUserModal({ isOpen, onClose, onAddUser }: AddUserModalProps) {
@@ -21,32 +21,47 @@ export default function AddUserModal({ isOpen, onClose, onAddUser }: AddUserModa
     setIsSubmitting(true);
 
     const formData = new FormData(e.currentTarget);
-    const fullName = formData.get('fullName') as string;
-    const username = fullName.toLowerCase().replace(/\s+/g, '.');
-    
+
+    const fullName = (formData.get('fullName') as string)?.trim();
+    const email = formData.get('email') as string;
+    const department = formData.get('department') as string;
+    const role = formData.get('role') as string;
+    const password = formData.get('password') as string;
+
+    // Auto-username generation
+    const username =
+      fullName?.toLowerCase().replace(/\s+/g, '.') ||
+      email.split('@')[0];
+
     const payload = {
-      username: username,
-      email: formData.get('email') as string,
-      password: formData.get('password') as string,
-      department: formData.get('department') as string,
-      role: formData.get('role') as string,
+      username,
+      email,
+      password,
+      department,
+      role,
     };
 
     try {
-      const response = await fetch('http://127.0.0.1:8000/api/register/', {
+      const response = await fetchWithAuth(`/api/register/`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Failed to add user');
+        let errorData: any = {};
+        try {
+          errorData = await response.json();
+        } catch {}
+
+        throw new Error(
+          errorData.detail ||
+            Object.values(errorData).flat().join(' ') ||
+            'Failed to add user'
+        );
       }
 
-      console.log('User added successfully:', payload);
-      onAddUser(); // Trigger refresh
-      onClose();
+      onAddUser(); // Refresh table
+      onClose();   // Close modal
     } catch (err: any) {
       setError(err.message || 'Failed to add user. Please try again.');
     } finally {
@@ -59,42 +74,89 @@ export default function AddUserModal({ isOpen, onClose, onAddUser }: AddUserModa
       <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md text-gray-900">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold text-gray-800">Add New User</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-800 text-2xl">&times;</button>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-800 text-2xl">
+            &times;
+          </button>
         </div>
-        <p className="text-sm text-gray-500 mb-6">Enter the details for the new user account below.</p>
-        
+
+        <p className="text-sm text-gray-500 mb-6">
+          Enter details for the new user account.
+        </p>
+
         <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label htmlFor="fullName" className="block text-sm font-medium text-gray-700">Full Name</label>
-              <input type="text" name="fullName" id="fullName" required className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500"/>
-            </div>
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email Address</label>
-              <input type="email" name="email" id="email" required className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500"/>
-            </div>
-            <div>
-              <label htmlFor="department" className="block text-sm font-medium text-gray-700">Department</label>
-              <input type="text" name="department" id="department" required className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500"/>
-            </div>
-            <div>
-              <label htmlFor="role" className="block text-sm font-medium text-gray-700">Role</label>
-              <select name="role" id="role" required className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900">
-                <option value="USER">User</option>
-                <option value="DEPT_HEAD">Department Head</option>
-                <option value="ADMIN">Admin</option>
-              </select>
-            </div>
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">Temporary Password</label>
-              <input type="password" name="password" id="password" required className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500"/>
-            </div>
-          
-          {error && <p className="text-red-600 text-sm text-center">{error}</p>}
+          <div>
+            <label className="block text-sm font-medium">Full Name</label>
+            <input
+              type="text"
+              name="fullName"
+              required
+              className="mt-1 w-full px-3 py-2 border rounded-md shadow-sm"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium">Email</label>
+            <input
+              type="email"
+              name="email"
+              required
+              className="mt-1 w-full px-3 py-2 border rounded-md shadow-sm"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium">Department</label>
+            <input
+              type="text"
+              name="department"
+              required
+              className="mt-1 w-full px-3 py-2 border rounded-md shadow-sm"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium">Role</label>
+            <select
+              name="role"
+              required
+              className="mt-1 w-full px-3 py-2 border rounded-md shadow-sm"
+            >
+              <option value="USER">User</option>
+              <option value="DEPT_HEAD">Department Head</option>
+              <option value="ADMIN">Admin</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium">Temporary Password</label>
+            <input
+              type="password"
+              name="password"
+              required
+              className="mt-1 w-full px-3 py-2 border rounded-md shadow-sm"
+            />
+          </div>
+
+          {error && (
+            <p className="text-red-600 text-sm text-center">{error}</p>
+          )}
 
           <div className="mt-6 flex justify-end space-x-3">
-            <button type="button" onClick={onClose} disabled={isSubmitting} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">Cancel</button>
-            <button type="submit" disabled={isSubmitting} className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-blue-400">
-              {isSubmitting ? 'Adding...' : 'Add User'}
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={isSubmitting}
+              className="px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300"
+            >
+              Cancel
+            </button>
+
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-blue-400"
+            >
+              {isSubmitting ? 'Adding…' : 'Add User'}
             </button>
           </div>
         </form>

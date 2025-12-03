@@ -27,22 +27,22 @@ type AdminIssuesResponse = {
 
 const getIssueTypeLabel = (type: string): string => {
   const labels: Record<string, string> = {
-    'ACCESS_ISSUE': 'Access Issue',
-    'PERFORMANCE': 'Performance',
-    'BUG': 'Bug/Error',
-    'LICENSE_EXPIRED': 'License Expired',
-    'FEATURE_REQUEST': 'Feature Request',
-    'OTHER': 'Other'
+    ACCESS_ISSUE: 'Access Issue',
+    PERFORMANCE: 'Performance',
+    BUG: 'Bug/Error',
+    LICENSE_EXPIRED: 'License Expired',
+    FEATURE_REQUEST: 'Feature Request',
+    OTHER: 'Other'
   };
   return labels[type] || type;
 };
 
 const getStatusColor = (status: string): string => {
   const colors: Record<string, string> = {
-    'OPEN': 'bg-red-100 text-red-800',
-    'IN_PROGRESS': 'bg-yellow-100 text-yellow-800',
-    'RESOLVED': 'bg-green-100 text-green-800',
-    'CLOSED': 'bg-gray-100 text-gray-800'
+    OPEN: 'bg-red-100 text-red-800',
+    IN_PROGRESS: 'bg-yellow-100 text-yellow-800',
+    RESOLVED: 'bg-green-100 text-green-800',
+    CLOSED: 'bg-gray-100 text-gray-800'
   };
   return colors[status] || 'bg-gray-100 text-gray-800';
 };
@@ -80,10 +80,10 @@ export default function AdminIssuesPanel() {
     setIsLoading(true);
     setError('');
     try {
-      const response = await fetchWithAuth('http://127.0.0.1:8000/api/admin-issues/');
-      if (!response.ok) {
-        throw new Error('Failed to fetch issues');
-      }
+      // ✅ FIXED: removed localhost
+      const response = await fetchWithAuth('/api/admin-issues/');
+      if (!response.ok) throw new Error('Failed to fetch issues');
+
       const data: AdminIssuesResponse = await response.json();
       setIssues(data.issues);
     } catch (err: any) {
@@ -99,29 +99,24 @@ export default function AdminIssuesPanel() {
 
     setIsSubmitting(true);
     try {
+      // ✅ FIXED: removed localhost
       const response = await fetchWithAuth(
-        `http://127.0.0.1:8000/api/issues/${selectedIssue.id}/status/`,
+        `/api/issues/${selectedIssue.id}/status/`,
         {
           method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            status: newStatus,
-          }),
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: newStatus })
         }
       );
 
-      if (!response.ok) {
-        throw new Error('Failed to update issue status');
-      }
+      if (!response.ok) throw new Error('Failed to update issue status');
 
       await fetchAllIssues();
       setShowModal(false);
       setSelectedIssue(null);
       setNewStatus('');
     } catch (err: any) {
-      console.error('Failed to update issue status:', err);
+      console.error('Failed:', err);
       alert(`Failed to update issue status: ${err.message}`);
     } finally {
       setIsSubmitting(false);
@@ -158,10 +153,10 @@ export default function AdminIssuesPanel() {
     );
   }
 
-  // Filter issues (backend already filters out resolved/closed)
-  const filteredIssues = filterStatus === 'ALL' 
-    ? issues 
-    : issues.filter(i => i.status === filterStatus);
+  const filteredIssues =
+    filterStatus === 'ALL'
+      ? issues
+      : issues.filter(i => i.status === filterStatus);
 
   const openIssues = issues.filter(i => i.status === 'OPEN');
   const inProgressIssues = issues.filter(i => i.status === 'IN_PROGRESS');
@@ -179,11 +174,10 @@ export default function AdminIssuesPanel() {
               </span>
             )}
           </div>
-          
-          {/* Filter dropdown */}
+
           <select
             value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
+            onChange={e => setFilterStatus(e.target.value)}
             className="px-3 py-1.5 border border-gray-300 rounded-md text-sm text-gray-700"
           >
             <option value="ALL">All Active</option>
@@ -192,7 +186,6 @@ export default function AdminIssuesPanel() {
           </select>
         </div>
 
-        {/* Status Summary */}
         <div className="grid grid-cols-2 gap-4 mb-4">
           <div className="bg-red-50 rounded-lg p-3">
             <div className="text-2xl font-bold text-red-600">{openIssues.length}</div>
@@ -211,7 +204,7 @@ export default function AdminIssuesPanel() {
           </div>
         ) : (
           <div className="space-y-3 max-h-96 overflow-y-auto">
-            {filteredIssues.map((issue) => (
+            {filteredIssues.map(issue => (
               <div
                 key={issue.id}
                 className="border border-gray-200 rounded-lg p-4 hover:border-orange-300 transition-colors"
@@ -220,10 +213,16 @@ export default function AdminIssuesPanel() {
                   <div className="flex-1">
                     <div className="flex items-center space-x-2 mb-2">
                       <span className="font-semibold text-gray-900">{issue.software_name}</span>
-                      <span className={`inline-flex items-center space-x-1 px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(issue.status)}`}>
+
+                      <span
+                        className={`inline-flex items-center space-x-1 px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
+                          issue.status
+                        )}`}
+                      >
                         {getStatusIcon(issue.status)}
                         <span>{issue.status.replace('_', ' ')}</span>
                       </span>
+
                       <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
                         {getIssueTypeLabel(issue.issue_type)}
                       </span>
@@ -232,8 +231,11 @@ export default function AdminIssuesPanel() {
                     <div className="flex items-center space-x-4 mb-2 text-sm text-gray-600">
                       <div className="flex items-center space-x-1">
                         <User className="h-4 w-4" />
-                        <span><strong>{issue.reported_by.username}</strong></span>
+                        <span>
+                          <strong>{issue.reported_by.username}</strong>
+                        </span>
                       </div>
+
                       {issue.reported_by.department && (
                         <div className="flex items-center space-x-1">
                           <Building2 className="h-4 w-4" />
@@ -252,14 +254,12 @@ export default function AdminIssuesPanel() {
                     </div>
                   </div>
 
-                  <div className="ml-4">
-                    <button
-                      onClick={() => openModal(issue)}
-                      className="px-3 py-1.5 bg-orange-600 text-white text-sm font-semibold rounded-md hover:bg-orange-700"
-                    >
-                      Update
-                    </button>
-                  </div>
+                  <button
+                    onClick={() => openModal(issue)}
+                    className="ml-4 px-3 py-1.5 bg-orange-600 text-white text-sm font-semibold rounded-md hover:bg-orange-700"
+                  >
+                    Update
+                  </button>
                 </div>
               </div>
             ))}
@@ -267,14 +267,11 @@ export default function AdminIssuesPanel() {
         )}
       </div>
 
-      {/* Update Status Modal */}
       {showModal && selectedIssue && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4">
           <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
-            <h2 className="text-xl font-semibold text-gray-800 mb-4">
-              Update Issue Status
-            </h2>
-            
+            <h2 className="text-xl font-semibold text-gray-800 mb-4">Update Issue Status</h2>
+
             <div className="mb-4">
               <p className="text-sm text-gray-600 mb-2">
                 <strong>Software:</strong> {selectedIssue.software_name}
@@ -292,12 +289,10 @@ export default function AdminIssuesPanel() {
             </div>
 
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                New Status:
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">New Status:</label>
               <select
                 value={newStatus}
-                onChange={(e) => setNewStatus(e.target.value)}
+                onChange={e => setNewStatus(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900"
               >
                 <option value="OPEN">Open</option>
@@ -319,6 +314,7 @@ export default function AdminIssuesPanel() {
               >
                 Cancel
               </button>
+
               <button
                 onClick={handleUpdateStatus}
                 disabled={isSubmitting}
