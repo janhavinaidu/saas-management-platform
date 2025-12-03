@@ -68,7 +68,8 @@ export default function DashboardLayout({
 
       try {
         // 4. Make a secure API call to the backend's /api/profile/ endpoint using fetchWithAuth
-        const response = await fetchWithAuth('http://127.0.0.1:8000/api/profile/');
+        const response = await fetchWithAuth('/api/profile/');
+
 
         if (!response.ok) {
           // If the token is invalid or expired, the backend will return an error.
