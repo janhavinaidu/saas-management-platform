@@ -1,4 +1,10 @@
-from django.urls import path
+from django.urls import path, include
+from rest_framework_simplejwt.views import (
+    TokenObtainPairView,
+    TokenRefreshView,
+    TokenVerifyView,
+)
+from .health_checks import HealthCheckView
 from .views import (
     UserListView, 
     SaaSApplicationCreateView, 
@@ -27,17 +33,21 @@ from .views import (
     AIRecommendationsView,
     LicenseChatbotView
 )
-from rest_framework_simplejwt.views import (
-    TokenObtainPairView,
-    TokenRefreshView,
-)
 
 # This list defines all the URLs that are available under the `/api/` path.
 urlpatterns = [
+    # --- HEALTH CHECK ---
+    path('health/', HealthCheckView.as_view(), name='health-check'),
+    
     # --- AUTHENTICATION & REGISTRATION ENDPOINTS ---
     path('register/', RegisterView.as_view(), name='auth_register'),
+    
+    # JWT Authentication
     path('token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('token/verify/', TokenVerifyView.as_view(), name='token_verify'),
+    
+    # User Profile
     path('profile/', UserProfileView.as_view(), name='user-profile'),
     path('update-department/', UpdateDepartmentView.as_view(), name='update-department'),
 
