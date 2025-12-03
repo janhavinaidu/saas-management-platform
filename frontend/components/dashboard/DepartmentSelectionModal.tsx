@@ -27,7 +27,7 @@ export default function DepartmentSelectionModal({ isOpen, onSuccess }: Departme
     }
 
     try {
-      const response = await fetchWithAuth('http://127.0.0.1:8000/api/update-department/', {
+      const response = await fetchWithAuth('/api/update-department/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ department: department.trim() }),
@@ -39,7 +39,7 @@ export default function DepartmentSelectionModal({ isOpen, onSuccess }: Departme
       }
 
       // Update the profile in localStorage
-      const profileResponse = await fetchWithAuth('http://127.0.0.1:8000/api/profile/');
+      const profileResponse = await fetchWithAuth('/api/profile/');
       if (profileResponse.ok) {
         const profile = await profileResponse.json();
         localStorage.setItem('userProfile', JSON.stringify(profile));

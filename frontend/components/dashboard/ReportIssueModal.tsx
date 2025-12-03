@@ -37,7 +37,7 @@ export default function ReportIssueModal({ isOpen, onClose, onSuccess, userLicen
     };
 
     try {
-      const response = await fetchWithAuth('http://127.0.0.1:8000/api/report-issue/', {
+      const response = await fetchWithAuth('/api/report-issue/', {
         method: 'POST',
         body: JSON.stringify(payload),
       });

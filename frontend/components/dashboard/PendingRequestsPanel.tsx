@@ -59,7 +59,7 @@ export default function PendingRequestsPanel({ onRequestProcessed }: PendingRequ
     setIsLoading(true);
     setError('');
     try {
-      const response = await fetchWithAuth('http://127.0.0.1:8000/api/pending-requests/');
+      const response = await fetchWithAuth('/api/pending-requests/');
       if (!response.ok) {
         throw new Error('Failed to fetch pending requests');
       }
@@ -79,7 +79,7 @@ export default function PendingRequestsPanel({ onRequestProcessed }: PendingRequ
     setIsSubmitting(true);
     try {
       const response = await fetchWithAuth(
-        `http://127.0.0.1:8000/api/requests/${selectedRequest.id}/approve-reject/`,
+        `/api/requests/${selectedRequest.id}/approve-reject/`,
         {
           method: 'POST',
           headers: {

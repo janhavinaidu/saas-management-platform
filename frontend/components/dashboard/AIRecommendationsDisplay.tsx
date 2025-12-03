@@ -24,7 +24,7 @@ export default function AIRecommendationsDisplay() {
     setIsLoading(true);
     setError('');
     try {
-      const response = await fetchWithAuth('http://127.0.0.1:8000/api/ai-recommendations/');
+      const response = await fetchWithAuth('/api/ai-recommendations/');
       if (!response.ok) throw new Error('Failed to fetch recommendations');
       const result = await response.json();
       setData(result);
@@ -40,7 +40,7 @@ export default function AIRecommendationsDisplay() {
     setError('');
     try {
       console.log('🚀 Starting AI analysis...');
-      const response = await fetchWithAuth('http://127.0.0.1:8000/api/run-optimization-agent/', {
+      const response = await fetchWithAuth('/api/run-optimization-agent/', {
         method: 'POST',
       });
 

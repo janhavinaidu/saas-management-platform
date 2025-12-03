@@ -30,7 +30,7 @@ export default function PendingRequestsTable() {
     setIsLoading(true);
     setError('');
     try {
-      const response = await fetchWithAuth('http://127.0.0.1:8000/api/pending-requests/');
+      const response = await fetchWithAuth('/api/pending-requests/');
       if (!response.ok) throw new Error('Failed to fetch pending requests.');
       const data = await response.json();
       setRequests(data.requests || data);
@@ -50,7 +50,7 @@ export default function PendingRequestsTable() {
   // Function to handle approving or rejecting a request
   const handleUpdateRequest = async (requestId: number, action: 'approve' | 'reject') => {
     try {
-      const response = await fetchWithAuth(`http://127.0.0.1:8000/api/requests/${requestId}/approve-reject/`, {
+      const response = await fetchWithAuth(`/api/requests/${requestId}/approve-reject/`, {
         method: 'POST',
         body: JSON.stringify({ action }),
       });

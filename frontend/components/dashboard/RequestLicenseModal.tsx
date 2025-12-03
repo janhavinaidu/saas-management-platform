@@ -59,10 +59,8 @@ export default function RequestLicenseModal({ isOpen, onClose, onSubmitSuccess, 
     };
 
     try {
-      // --- THIS IS THE FIX ---
-      // We now use our smart fetchWithAuth function, which automatically
-      // adds the authentication token to the request.
-      const response = await fetchWithAuth('http://127.0.0.1:8000/api/license-requests/', {
+      // Use the centralized API_BASE_URL
+      const response = await fetchWithAuth('/api/license-requests/', {
         method: 'POST',
         body: JSON.stringify(payload),
       });

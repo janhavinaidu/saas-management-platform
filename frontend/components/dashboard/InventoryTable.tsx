@@ -61,7 +61,7 @@ export default function InventoryTable() {
   const fetchInventory = async () => {
     setIsLoading(true);
     try {
-      const response = await fetchWithAuth('http://127.0.0.1:8000/api/saas-applications/');
+      const response = await fetchWithAuth('/api/saas-applications/');
       if (!response.ok) throw new Error('Failed to fetch inventory.');
       const data = await response.json();
       setInventory(data);
@@ -91,7 +91,7 @@ export default function InventoryTable() {
   const handleDelete = async () => {
     if (!deletingSoftware) return;
     try {
-      const response = await fetchWithAuth(`http://127.0.0.1:8000/api/saas-applications/${deletingSoftware.id}/`, {
+      const response = await fetchWithAuth(`/api/saas-applications/${deletingSoftware.id}/`, {
         method: 'DELETE',
       });
       if (!response.ok) throw new Error('Failed to delete software.');

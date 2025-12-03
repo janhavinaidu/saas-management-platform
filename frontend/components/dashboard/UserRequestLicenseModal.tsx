@@ -29,7 +29,7 @@ export default function UserRequestLicenseModal({ isOpen, onClose, onSuccess }: 
     };
 
     try {
-      const response = await fetchWithAuth('http://127.0.0.1:8000/api/user-license-request/', {
+      const response = await fetchWithAuth('/api/user-license-request/', {
         method: 'POST',
         body: JSON.stringify(payload),
       });

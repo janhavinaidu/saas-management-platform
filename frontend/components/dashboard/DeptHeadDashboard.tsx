@@ -33,7 +33,7 @@ export default function DeptHeadDashboard() {
 
   const checkDepartment = async () => {
     try {
-      const response = await fetchWithAuth('http://127.0.0.1:8000/api/profile/');
+      const response = await fetchWithAuth('/api/profile/');
       if (response.ok) {
         const profile = await response.json();
         if (!profile.department) {
@@ -54,7 +54,7 @@ export default function DeptHeadDashboard() {
 
   const fetchDepartmentStats = async () => {
     try {
-      const response = await fetchWithAuth('http://127.0.0.1:8000/api/department-stats/');
+      const response = await fetchWithAuth('/api/department-stats/');
       if (response.ok) {
         const data: DepartmentStats = await response.json();
         setStats(data);

@@ -78,7 +78,7 @@ export default function TeamIssuesPanel() {
     setIsLoading(true);
     setError('');
     try {
-      const response = await fetchWithAuth('http://127.0.0.1:8000/api/dept-head-issues/');
+      const response = await fetchWithAuth('/api/dept-head-issues/');
       if (!response.ok) {
         throw new Error('Failed to fetch team issues');
       }
@@ -98,7 +98,7 @@ export default function TeamIssuesPanel() {
     setIsSubmitting(true);
     try {
       const response = await fetchWithAuth(
-        `http://127.0.0.1:8000/api/issues/${selectedIssue.id}/status/`,
+        `/api/issues/${selectedIssue.id}/status/`,
         {
           method: 'PATCH',
           headers: {

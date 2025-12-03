@@ -43,7 +43,7 @@ export default function DeptHeadRequestsPanel() {
     setIsLoading(true);
     setError('');
     try {
-      const response = await fetchWithAuth('http://127.0.0.1:8000/api/dept-head-requests/');
+      const response = await fetchWithAuth('/api/dept-head-requests/');
       if (!response.ok) {
         throw new Error('Failed to fetch team requests');
       }
@@ -63,7 +63,7 @@ export default function DeptHeadRequestsPanel() {
     setIsSubmitting(true);
     try {
       const response = await fetchWithAuth(
-        `http://127.0.0.1:8000/api/requests/${selectedRequest.id}/forward/`,
+        `/api/requests/${selectedRequest.id}/forward/`,
         {
           method: 'POST',
           headers: {

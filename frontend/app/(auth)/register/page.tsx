@@ -4,18 +4,27 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
-// A reusable component for the role selection options.
-const RoleSelector = ({ value, checked, onChange, label, description }: {
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL!;
+
+const RoleSelector = ({
+    value,
+    checked,
+    onChange,
+    label,
+    description
+}: {
     value: string;
     checked: boolean;
     onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
     label: string;
     description: string;
 }) => (
-    <label className={`flex items-center p-4 border rounded-lg cursor-pointer transition-colors ${checked ? 'bg-blue-50 border-blue-500' : 'border-gray-300 hover:border-gray-400'}`}>
-        <input 
-            type="radio" 
-            name="role" 
+    <label className={`flex items-center p-4 border rounded-lg cursor-pointer transition-colors ${
+        checked ? 'bg-blue-50 border-blue-500' : 'border-gray-300 hover:border-gray-400'
+    }`}>
+        <input
+            type="radio"
+            name="role"
             value={value}
             checked={checked}
             onChange={onChange}
@@ -31,7 +40,7 @@ const RoleSelector = ({ value, checked, onChange, label, description }: {
 export default function RegisterPage() {
     const router = useRouter();
     const [error, setError] = useState('');
-    const [selectedRole, setSelectedRole] = useState('USER'); // Default role is 'USER'
+    const [selectedRole, setSelectedRole] = useState('USER');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -42,6 +51,7 @@ export default function RegisterPage() {
         setIsSubmitting(true);
 
         const formData = new FormData(e.currentTarget);
+
         const password = formData.get('password');
         const confirmPassword = formData.get('confirmPassword');
 
@@ -51,29 +61,26 @@ export default function RegisterPage() {
             return;
         }
 
-        // The payload now includes the separate 'username' from the new form field.
         const payload = {
             username: formData.get('username'),
             email: formData.get('email'),
-            password,
-            role: selectedRole,
+            password: password,
+            role: selectedRole
         };
-        
+
         try {
-            const response = await fetch('http://127.0.0.1:8000/api/register/', {
+            const response = await fetch(`${API_BASE_URL}/api/register/`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload),
+                body: JSON.stringify(payload)
             });
 
             if (!response.ok) {
-                const errorData = await response.json();
-                // We expect a 'detail' key from our new backend serializer for clear errors.
-                throw new Error(errorData.detail || 'An unknown error occurred during registration.');
+                const errData = await response.json();
+                throw new Error(errData.detail || "Registration failed. Try again.");
             }
-            
-            // On success, show an alert and redirect to the login page.
-            alert('Account created successfully! Please log in.');
+
+            alert("Account created successfully! Please log in.");
             router.push('/login');
 
         } catch (err: any) {
@@ -89,90 +96,117 @@ export default function RegisterPage() {
                 <h1 className="text-2xl font-bold text-black">Create a New Account</h1>
                 <p className="text-black">Join the SaaS Management Platform</p>
             </div>
-            
+
             <form onSubmit={handleSubmit} className="space-y-4">
-                {/* --- THE NEW USERNAME FIELD --- */}
                 <div>
                     <label htmlFor="username" className="block text-sm font-medium text-black">Username</label>
-                    <input type="text" name="username" id="username" required className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-black" />
+                    <input
+                        type="text"
+                        name="username"
+                        id="username"
+                        required
+                        className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md text-black"
+                    />
                 </div>
+
                 <div>
                     <label htmlFor="email" className="block text-sm font-medium text-black">Email</label>
-                    <input type="email" name="email" id="email" required className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-black" />
+                    <input
+                        type="email"
+                        name="email"
+                        id="email"
+                        required
+                        className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md text-black"
+                    />
                 </div>
+
                 <div>
                     <label htmlFor="password" className="block text-sm font-medium text-black">Password</label>
                     <div className="relative">
-                        <input 
-                            type={showPassword ? "text" : "password"} 
-                            name="password" 
-                            id="password" 
-                            required 
-                            className="mt-1 w-full px-3 py-2 pr-10 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-black" 
+                        <input
+                            type={showPassword ? "text" : "password"}
+                            name="password"
+                            id="password"
+                            required
+                            className="mt-1 w-full px-3 py-2 pr-10 border border-gray-300 rounded-md text-black"
                         />
                         <button
                             type="button"
-                            className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                            className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500"
                             onClick={() => setShowPassword(!showPassword)}
                         >
-                            {showPassword ? (
-                                <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
-                                </svg>
-                            ) : (
-                                <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                </svg>
-                            )}
+                            {showPassword ? "🙈" : "👁️"}
                         </button>
                     </div>
                 </div>
+
                 <div>
                     <label htmlFor="confirmPassword" className="block text-sm font-medium text-black">Confirm Password</label>
                     <div className="relative">
-                        <input 
-                            type={showConfirmPassword ? "text" : "password"} 
-                            name="confirmPassword" 
-                            id="confirmPassword" 
-                            required 
-                            className="mt-1 w-full px-3 py-2 pr-10 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-black" 
+                        <input
+                            type={showConfirmPassword ? "text" : "password"}
+                            name="confirmPassword"
+                            id="confirmPassword"
+                            required
+                            className="mt-1 w-full px-3 py-2 pr-10 border border-gray-300 rounded-md text-black"
                         />
                         <button
                             type="button"
-                            className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                            className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500"
                             onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                         >
-                            {showConfirmPassword ? (
-                                <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
-                                </svg>
-                            ) : (
-                                <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                </svg>
-                            )}
+                            {showConfirmPassword ? "🙈" : "👁️"}
                         </button>
                     </div>
                 </div>
-                
+
                 <div className="space-y-3 pt-2">
                     <p className="text-sm font-medium text-black">Choose your role</p>
-                    <RoleSelector value="USER" checked={selectedRole === 'USER'} onChange={(e) => setSelectedRole(e.target.value)} label="Employee" description="Access assigned software and request licenses"/>
-                    <RoleSelector value="DEPT_HEAD" checked={selectedRole === 'DEPT_HEAD'} onChange={(e) => setSelectedRole(e.target.value)} label="Department Head" description="Manage team licenses and department resources"/>
-                    <RoleSelector value="ADMIN" checked={selectedRole === 'ADMIN'} onChange={(e) => setSelectedRole(e.target.value)} label="Admin" description="Full system access and user management"/>
+
+                    <RoleSelector
+                        value="USER"
+                        checked={selectedRole === 'USER'}
+                        onChange={(e) => setSelectedRole(e.target.value)}
+                        label="Employee"
+                        description="Request licenses and access apps"
+                    />
+
+                    <RoleSelector
+                        value="DEPT_HEAD"
+                        checked={selectedRole === 'DEPT_HEAD'}
+                        onChange={(e) => setSelectedRole(e.target.value)}
+                        label="Department Head"
+                        description="Manage team resources"
+                    />
+
+                    <RoleSelector
+                        value="ADMIN"
+                        checked={selectedRole === 'ADMIN'}
+                        onChange={(e) => setSelectedRole(e.target.value)}
+                        label="Admin"
+                        description="Full system management"
+                    />
                 </div>
 
-                {error && <p className="text-red-500 text-sm text-center pt-2">{error}</p>}
-                
+                {error && <p className="text-red-500 text-sm text-center">{error}</p>}
+
                 <div className="pt-2">
-                    <button type="submit" disabled={isSubmitting} className="w-full py-2 px-4 bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 disabled:bg-blue-400">
-                         {isSubmitting ? 'Creating Account...' : 'Create Account'}
+                    <button
+                        type="submit"
+                        disabled={isSubmitting}
+                        className="w-full py-2 px-4 bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 disabled:bg-blue-400"
+                    >
+                        {isSubmitting ? "Creating Account..." : "Create Account"}
                     </button>
                 </div>
             </form>
+
+            <p className="text-center text-sm text-black">
+                Already have an account?{' '}
+                <Link href="/login" className="text-blue-600 font-medium hover:underline">
+                    Sign in
+                </Link>
+            </p>
         </div>
     );
 }
-

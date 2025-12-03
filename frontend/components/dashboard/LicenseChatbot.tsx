@@ -44,7 +44,7 @@ export default function LicenseChatbot() {
     setIsLoading(true);
 
     try {
-      const response = await fetchWithAuth('http://127.0.0.1:8000/api/license-chatbot/', {
+      const response = await fetchWithAuth('/api/license-chatbot/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

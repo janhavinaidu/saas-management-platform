@@ -14,7 +14,7 @@ export default function RecommendationsPanel() {
     try {
       console.log('🚀 Starting AI optimization agent...');
       // This is the "phone call" to the backend to start the job.
-      const response = await fetchWithAuth('http://127.0.0.1:8000/api/run-optimization-agent/', {
+      const response = await fetchWithAuth('/api/run-optimization-agent/', {
         method: 'POST',
       });
 

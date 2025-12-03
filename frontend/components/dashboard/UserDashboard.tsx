@@ -49,7 +49,7 @@ export default function UserDashboard() {
     const fetchUserData = async () => {
       try {
         // Fetch user profile
-        const profileResponse = await fetchWithAuth('http://127.0.0.1:8000/api/profile/');
+        const profileResponse = await fetchWithAuth('/api/profile/');
 
         if (profileResponse.ok) {
           const profileData = await profileResponse.json();
@@ -58,7 +58,7 @@ export default function UserDashboard() {
         }
 
         // Fetch allocated licenses
-        const licensesResponse = await fetchWithAuth('http://127.0.0.1:8000/api/user-licenses/');
+        const licensesResponse = await fetchWithAuth('/api/user-licenses/');
 
         if (licensesResponse.ok) {
           const licensesData = await licensesResponse.json();

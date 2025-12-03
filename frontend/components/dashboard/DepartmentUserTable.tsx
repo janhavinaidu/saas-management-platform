@@ -45,7 +45,7 @@ export default function DepartmentUserTable() {
       setIsLoading(true);
       setError('');
       try {
-          const response = await fetchWithAuth('http://127.0.0.1:8000/api/department-team/');
+          const response = await fetchWithAuth('/api/department-team/');
           if (!response.ok) throw new Error('Failed to fetch team members.');
           const data = await response.json();
           // Backend now returns users with their licenses already included
