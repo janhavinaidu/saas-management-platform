@@ -1,7 +1,12 @@
-import { API_BASE_URL } from "./config";
+// Auto-detect environment
+export const API_BASE_URL =
+  typeof window !== "undefined" &&
+  ["localhost", "127.0.0.1"].includes(window.location.hostname)
+    ? "http://127.0.0.1:8000"
+    : "https://saas-management-platform-1.onrender.com";
 
 /* -----------------------------
-   REFRESH TOKEN FUNCTION
+   REFRESH TOKEN
 ----------------------------- */
 const getNewAccessToken = async (): Promise<string | null> => {
   const refreshToken = localStorage.getItem("refreshToken");
@@ -25,7 +30,7 @@ const getNewAccessToken = async (): Promise<string | null> => {
 };
 
 /* -----------------------------
-   MAIN AUTH FETCH HANDLER
+   MAIN AUTHENTICATED FETCH
 ----------------------------- */
 export const fetchWithAuth = async (
   url: string,
@@ -41,7 +46,7 @@ export const fetchWithAuth = async (
   const headers = new Headers(options.headers || {});
   headers.set("Authorization", `Bearer ${accessToken}`);
 
-  // Prevent breaking uploads — only set JSON content type when needed
+  // Do NOT set content-type for FormData
   if (options.body && !(options.body instanceof FormData)) {
     headers.set("Content-Type", "application/json");
   }
@@ -49,15 +54,14 @@ export const fetchWithAuth = async (
   const fetchOptions: RequestInit = {
     ...options,
     headers,
+    // ❌ REMOVE THIS — breaks JWT
+    // credentials: "include",
   };
 
   let response = await fetch(`${API_BASE_URL}${url}`, fetchOptions);
 
-  /* -----------------------------
-     HANDLE TOKEN EXPIRATION
-  ----------------------------- */
   if (response.status === 401) {
-    console.log("🔁 Token expired — refreshing...");
+    console.log("Token expired, refreshing…");
 
     const newToken = await getNewAccessToken();
     if (!newToken) {
@@ -66,29 +70,20 @@ export const fetchWithAuth = async (
       throw new Error("Session expired");
     }
 
-    // Retry request with new token
     headers.set("Authorization", `Bearer ${newToken}`);
     fetchOptions.headers = headers;
 
     response = await fetch(`${API_BASE_URL}${url}`, fetchOptions);
   }
 
-  /* -----------------------------
-     SAFELY PARSE ONLY JSON RESPONSES
-  ----------------------------- */
+  // Avoid HTML parsing crash → check content-type before parsing JSON
   if (!response.ok) {
     const contentType = response.headers.get("content-type") || "";
-
     if (contentType.includes("application/json")) {
       const errorData = await response.json();
-      throw new Error(
-        errorData.detail ||
-          errorData.message ||
-          errorData.error ||
-          "Request failed"
-      );
+      throw new Error(errorData.detail || errorData.message || "Request failed");
     } else {
-      throw new Error(`Server error: ${response.status}`);
+      throw new Error(`Server Error (${response.status})`);
     }
   }
 
