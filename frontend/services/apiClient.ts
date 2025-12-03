@@ -31,6 +31,13 @@ export const fetchWithAuth = async (
   url: string,
   options: RequestInit = {}
 ): Promise<Response> => {
+
+  // AUTO-FIX URL JOINING (prevents double or missing slashes)
+  const finalUrl =
+    url.startsWith("/")
+      ? `${API_BASE_URL}${url}`
+      : `${API_BASE_URL}/${url}`;
+
   let accessToken = localStorage.getItem("accessToken");
 
   if (!accessToken) {
@@ -41,7 +48,6 @@ export const fetchWithAuth = async (
   const headers = new Headers(options.headers || {});
   headers.set("Authorization", `Bearer ${accessToken}`);
 
-  // Prevent breaking uploads — only set JSON content type when needed
   if (options.body && !(options.body instanceof FormData)) {
     headers.set("Content-Type", "application/json");
   }
@@ -51,7 +57,7 @@ export const fetchWithAuth = async (
     headers,
   };
 
-  let response = await fetch(`${API_BASE_URL}${url}`, fetchOptions);
+  let response = await fetch(finalUrl, fetchOptions);
 
   /* -----------------------------
      HANDLE TOKEN EXPIRATION
@@ -66,20 +72,19 @@ export const fetchWithAuth = async (
       throw new Error("Session expired");
     }
 
-    // Retry request with new token
     headers.set("Authorization", `Bearer ${newToken}`);
     fetchOptions.headers = headers;
 
-    response = await fetch(`${API_BASE_URL}${url}`, fetchOptions);
+    response = await fetch(finalUrl, fetchOptions);
   }
 
   /* -----------------------------
      SAFELY PARSE ONLY JSON RESPONSES
   ----------------------------- */
   if (!response.ok) {
-    const contentType = response.headers.get("content-type") || "";
+    const ct = response.headers.get("content-type") || "";
 
-    if (contentType.includes("application/json")) {
+    if (ct.includes("application/json")) {
       const errorData = await response.json();
       throw new Error(
         errorData.detail ||
